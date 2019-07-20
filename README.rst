@@ -1,3 +1,10 @@
+.. image:: https://travis-ci.org/claws/gestalt.svg?branch=master
+    :target: https://travis-ci.org/claws/gestalt
+
+.. image:: https://img.shields.io/pypi/v/gestalt.svg
+    :target: https://pypi.python.org/pypi/gestalt
+
+
 Gestalt
 #######
 
@@ -60,19 +67,15 @@ The `API Reference <http://gestalt.readthedocs.io>`_ provides API-level document
 Performance Tip
 ===============
 
-Use the high performance `uvloop<https://github.com/MagicStack/uvloop>`_ event loop
+Use the high performance `uvloop <https://github.com/MagicStack/uvloop>`_ event loop
 implementation instead of the default asyncio event loop.
 
 Install the package using:
 
-``` console
-(venv) $ pip install uvloop
-```
+.. code-block:: console
 
-Then, call ``uvloop.install()`` manually before creating an asyncio event loop
-either via the standard ``asyncio.run()`` or the ``gestalt.runner.run`` function.
+    (venv) $ pip install uvloop
 
-``` python
-import uvloop
-uvloop.install()
-```
+Then, simply call ``uvloop.install()`` manually before creating an asyncio event
+loop either via the standard ``asyncio.run()`` or the ``gestalt.runner.run``
+function.

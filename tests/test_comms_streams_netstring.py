@@ -283,10 +283,7 @@ class NetstringEndpointTestCase(asynctest.TestCase):
                     )
                     await asyncio.sleep(0.1)
 
-                    expected_items = (
-                        "was refused",
-                        "certificate verify failed",
-                    )
+                    expected_items = ("was refused", "certificate verify failed")
                     for expected_item in expected_items:
                         self.assertTrue(
                             any(expected_item in log_item for log_item in log.output)
@@ -298,7 +295,10 @@ class NetstringEndpointTestCase(asynctest.TestCase):
                     )
                     for expected_item in expected_items:
                         self.assertTrue(
-                            any(expected_item in log_item for log_item in root_log.output)
+                            any(
+                                expected_item in log_item
+                                for log_item in root_log.output
+                            )
                         )
 
         finally:
