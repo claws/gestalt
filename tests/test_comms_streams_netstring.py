@@ -4,9 +4,14 @@ import logging
 import pathlib
 import socket
 import ssl
+import sys
 import unittest.mock
 from gestalt.comms.stream.netstring import NetstringClient, NetstringServer
 import tls_utils
+
+py_ver = sys.version_info
+PY36 = py_ver.major == 3 and py_ver.minor == 6
+PY37 = py_ver.major == 3 and py_ver.minor == 7
 
 
 class NetstringEndpointTestCase(asynctest.TestCase):
@@ -268,9 +273,7 @@ class NetstringEndpointTestCase(asynctest.TestCase):
         client_ep = NetstringClient()
 
         try:
-            # suppress ssl exception traceback logs reporting
-            # "certificate verify failed: self signed certificate in certificate chain"
-            with self.assertLogs(level=logging.ERROR) as root_log:
+            if PY36:
                 with self.assertLogs(
                     "gestalt.comms.stream.endpoint", level=logging.ERROR
                 ) as log:
@@ -288,18 +291,41 @@ class NetstringEndpointTestCase(asynctest.TestCase):
                         self.assertTrue(
                             any(expected_item in log_item for log_item in log.output)
                         )
-
-                    # Errors get sent to root logger
-                    expected_items = (
-                        "certificate verify failed: self signed certificate in certificate chain",
-                    )
-                    for expected_item in expected_items:
-                        self.assertTrue(
-                            any(
-                                expected_item in log_item
-                                for log_item in root_log.output
-                            )
+            else:
+                # suppress ssl exception traceback logs reporting
+                # "certificate verify failed: self signed certificate in certificate chain"
+                with self.assertLogs(level=logging.ERROR) as root_log:
+                    with self.assertLogs(
+                        "gestalt.comms.stream.endpoint", level=logging.ERROR
+                    ) as log:
+                        await client_ep.start(
+                            addr=address,
+                            port=port,
+                            family=socket.AF_INET,
+                            ssl=client_ctx,
+                            reconnect=False,
                         )
+                        await asyncio.sleep(0.1)
+
+                        expected_items = ("was refused", "certificate verify failed")
+                        for expected_item in expected_items:
+                            self.assertTrue(
+                                any(
+                                    expected_item in log_item for log_item in log.output
+                                )
+                            )
+
+                        # In Python 3.7+ Errors get sent to root logger
+                        expected_items = (
+                            "certificate verify failed: self signed certificate in certificate chain",
+                        )
+                        for expected_item in expected_items:
+                            self.assertTrue(
+                                any(
+                                    expected_item in log_item
+                                    for log_item in root_log.output
+                                )
+                            )
 
         finally:
             await client_ep.stop()
@@ -349,36 +375,63 @@ class NetstringEndpointTestCase(asynctest.TestCase):
 
         client_ep = NetstringClient()
 
-        with self.assertLogs(level=logging.ERROR) as root_log:
-            with self.assertLogs(
-                "gestalt.comms.stream.endpoint", level=logging.ERROR
-            ) as log:
-                await client_ep.start(
-                    addr=address,
-                    port=port,
-                    family=socket.AF_INET,
-                    ssl=client_ctx,
-                    reconnect=False,
-                )
-                await asyncio.sleep(0.1)
-
-                expected_items = ("was refused",)
-                for expected_item in expected_items:
-                    self.assertTrue(
-                        any(expected_item in log_item for log_item in log.output)
+        try:
+            if PY36:
+                with self.assertLogs(
+                    "gestalt.comms.stream.endpoint", level=logging.ERROR
+                ) as log:
+                    await client_ep.start(
+                        addr=address,
+                        port=port,
+                        family=socket.AF_INET,
+                        ssl=client_ctx,
+                        reconnect=False,
                     )
+                    await asyncio.sleep(0.1)
 
-                expected_items = ("peer did not return a certificate",)
-                for expected_item in expected_items:
-                    self.assertTrue(
-                        any(expected_item in log_item for log_item in root_log.output)
-                    )
+                    expected_items = ("was refused",)
+                    for expected_item in expected_items:
+                        self.assertTrue(
+                            any(expected_item in log_item for log_item in log.output)
+                        )
 
-        await client_ep.stop()
-        await asyncio.sleep(0.1)
+            else:
+                with self.assertLogs(level=logging.ERROR) as root_log:
+                    with self.assertLogs(
+                        "gestalt.comms.stream.endpoint", level=logging.ERROR
+                    ) as log:
+                        await client_ep.start(
+                            addr=address,
+                            port=port,
+                            family=socket.AF_INET,
+                            ssl=client_ctx,
+                            reconnect=False,
+                        )
+                        await asyncio.sleep(0.1)
 
-        await server_ep.stop()
-        self.assertTrue(server_on_stopped_mock.called)
+                        expected_items = ("was refused",)
+                        for expected_item in expected_items:
+                            self.assertTrue(
+                                any(
+                                    expected_item in log_item for log_item in log.output
+                                )
+                            )
+
+                        # In Python 3.7+ Errors get sent to root logger
+                        expected_items = ("peer did not return a certificate",)
+                        for expected_item in expected_items:
+                            self.assertTrue(
+                                any(
+                                    expected_item in log_item
+                                    for log_item in root_log.output
+                                )
+                            )
+        finally:
+            await client_ep.stop()
+            await asyncio.sleep(0.1)
+
+            await server_ep.stop()
+            self.assertTrue(server_on_stopped_mock.called)
 
     @unittest.skipUnless(tls_utils.CERTS_EXIST, "cert files do not exist")
     async def test_client_server_ssl_with_selfsigned_client_certificates(self):
@@ -424,7 +477,7 @@ class NetstringEndpointTestCase(asynctest.TestCase):
         client_ep = NetstringClient()
 
         try:
-            with self.assertLogs(level=logging.ERROR) as root_log:
+            if PY36:
                 with self.assertLogs(
                     "gestalt.comms.stream.endpoint", level=logging.ERROR
                 ) as log:
@@ -438,14 +491,41 @@ class NetstringEndpointTestCase(asynctest.TestCase):
                         self.assertTrue(
                             any(expected_item in log_item for log_item in log.output)
                         )
+            else:
 
-                # Errors reported to root logger are possibly related to:
-                # https://stackoverflow.com/questions/52012488/ssl-asyncio-traceback-even-when-error-is-handled
-                expected_items = ("certificate verify failed: self signed certificate",)
-                for expected_item in expected_items:
-                    self.assertTrue(
-                        any(expected_item in log_item for log_item in root_log.output)
-                    )
+                with self.assertLogs(level=logging.ERROR) as root_log:
+                    with self.assertLogs(
+                        "gestalt.comms.stream.endpoint", level=logging.ERROR
+                    ) as log:
+                        await client_ep.start(
+                            addr=address,
+                            port=port,
+                            family=socket.AF_INET,
+                            ssl=client_ctx,
+                        )
+                        await asyncio.sleep(0.1)
+
+                        expected_items = ("was refused",)
+                        for expected_item in expected_items:
+                            self.assertTrue(
+                                any(
+                                    expected_item in log_item for log_item in log.output
+                                )
+                            )
+
+                        # In Python 3.7+ Errors get sent to root logger
+                        # Errors reported to root logger are possibly related to:
+                        # https://stackoverflow.com/questions/52012488/ssl-asyncio-traceback-even-when-error-is-handled
+                        expected_items = (
+                            "certificate verify failed: self signed certificate",
+                        )
+                        for expected_item in expected_items:
+                            self.assertTrue(
+                                any(
+                                    expected_item in log_item
+                                    for log_item in root_log.output
+                                )
+                            )
 
         finally:
             await client_ep.stop()

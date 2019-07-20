@@ -1,6 +1,9 @@
+dist: xenial   # required for Python >= 3.7
 language: python
 python:
   - 3.6
+  - 3.7
+  - "3.8-dev"  # 3.8 development branch
 os:
   - linux
 git:
@@ -13,7 +16,7 @@ install:
   - make generate
   - make style.check
   - make dist
-  - pip install dist/gestalt-*.whl
+  - pip install dist/gestalt-*.whl[amq,protobuf,msgpack,avro,brotli,snappy,yaml]
 script:
   - make test
   - make docs

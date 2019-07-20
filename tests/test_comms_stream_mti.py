@@ -295,6 +295,84 @@ class MtiEndpointTestCase(asynctest.TestCase):
         await server_ep.stop()
         self.assertTrue(server_on_stopped_mock.called)
 
+    @unittest.skipUnless(serialization.have_msgpack, "requires msgpack")
+    async def test_msgpack_client_server_interaction_without_msg_id(self):
+        """ check msgpack client server interactions without message identifiers """
+
+        server_on_message_mock = asynctest.CoroutineMock()
+        server_on_started_mock = asynctest.CoroutineMock()
+        server_on_stopped_mock = asynctest.CoroutineMock()
+        server_on_peer_available_mock = asynctest.CoroutineMock()
+        server_on_peer_unavailable_mock = asynctest.CoroutineMock()
+
+        server_ep = MtiServer(
+            on_message=server_on_message_mock,
+            on_started=server_on_started_mock,
+            on_stopped=server_on_stopped_mock,
+            on_peer_available=server_on_peer_available_mock,
+            on_peer_unavailable=server_on_peer_unavailable_mock,
+            content_type=serialization.CONTENT_TYPE_MSGPACK,
+        )
+
+        await server_ep.start(addr="127.0.0.1", family=socket.AF_INET)
+        self.assertTrue(server_on_started_mock.called)
+
+        address, port = server_ep.bindings[0]
+
+        client_on_message_mock = asynctest.CoroutineMock()
+        client_on_started_mock = asynctest.CoroutineMock()
+        client_on_stopped_mock = asynctest.CoroutineMock()
+        client_on_peer_available_mock = asynctest.CoroutineMock()
+        client_on_peer_unavailable_mock = asynctest.CoroutineMock()
+
+        client_ep = MtiClient(
+            on_message=client_on_message_mock,
+            on_started=client_on_started_mock,
+            on_stopped=client_on_stopped_mock,
+            on_peer_available=client_on_peer_available_mock,
+            on_peer_unavailable=client_on_peer_unavailable_mock,
+            content_type=serialization.CONTENT_TYPE_MSGPACK,
+        )
+
+        await client_ep.start(addr=address, port=port, family=socket.AF_INET)
+        await asyncio.sleep(0.3)
+
+        self.assertTrue(client_on_started_mock.called)
+        self.assertTrue(client_on_peer_available_mock.called)
+        self.assertTrue(server_on_peer_available_mock.called)
+
+        self.assertEqual(len(client_ep.connections), 1)
+
+        test_msg_in = dict(latitude=130.0, longitude=-30.0, altitude=50.0)
+
+        # Send a msg with identifier from client to server
+        client_ep.send(test_msg_in)
+        await asyncio.sleep(0.1)
+
+        self.assertTrue(server_on_message_mock.called)
+        (args, kwargs) = server_on_message_mock.call_args_list[0]
+        received_msg = args[0]
+        sender_id = kwargs["peer_id"]
+        self.assertEqual(received_msg, test_msg_in)
+
+        # Send a msg from server to client
+        server_ep.send(received_msg, peer_id=sender_id)
+        await asyncio.sleep(0.1)
+        (args, kwargs) = client_on_message_mock.call_args_list[0]
+        received_msg = args[0]
+        sender_id = kwargs["peer_id"]
+        self.assertEqual(received_msg, test_msg_in)
+
+        await client_ep.stop()
+        await asyncio.sleep(0.1)
+
+        self.assertTrue(client_on_stopped_mock.called)
+        self.assertTrue(client_on_peer_unavailable_mock.called)
+        self.assertTrue(server_on_peer_unavailable_mock.called)
+
+        await server_ep.stop()
+        self.assertTrue(server_on_stopped_mock.called)
+
     @unittest.skipUnless(serialization.have_protobuf, "requires google protobuf")
     async def test_protobuf_client_server_interaction_with_msg_id(self):
         """ check protobuf client server interactions with message identifiers """

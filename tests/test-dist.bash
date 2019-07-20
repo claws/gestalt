@@ -29,7 +29,7 @@ pip install pip --upgrade
 pip install asynctest
 
 echo "Installing $RELEASE_ARCHIVE"
-pip install $RELEASE_ARCHIVE
+pip install $RELEASE_ARCHIVE[amq,protobuf,msgpack,avro,brotli,snappy,yaml]
 
 echo "Running tests"
 cd ../tests

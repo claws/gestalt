@@ -44,21 +44,6 @@ def get_requirements(requirements_file: str) -> str:
 
 if __name__ == "__main__":
     setup(
-        entry_points={
-            "console_scripts": [
-                "soar-adsb-sbs-client=soar.adsb.sbs.client:main",
-                "soar-adsb-sbs-recorder=soar.adsb.sbs.recorder:main",
-                "soar-adsb-sbs-producer=soar.mq.sbs_producer:main",
-                "soar-adsb-sbs-consumer=soar.mq.sbs_consumer:main",
-                "soar-adsb-sbs-replayer=soar.mq.sbs_replayer:main",
-                "soar-tracks-consumer=soar.mq.tracks_consumer:main",
-                "soar-apps-adsb-tracker=soar.apps.adsb_tracker:main",
-            ]
-        }
-    )
-
-if __name__ == "__main__":
-    setup(
         name="gestalt",
         description="gestalt is a Python application framework for building distributed systems",
         long_description=get_long_description(),
@@ -81,6 +66,7 @@ if __name__ == "__main__":
             "brotli": ["brotli"],
         },
         classifiers=[
+            "Development Status :: 3 - Alpha",
             "Intended Audience :: Developers",
             "Programming Language :: Python :: 3.6",
             "Programming Language :: Python :: 3.7",
