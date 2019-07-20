@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+message Position {
+    enum PositionStatus {
+        UNDEFINED = 0;
+        LIVE      = 1;
+        SIMULATED    = 2;
+    }
+    float latitude = 1;
+    float longitude = 2;
+    float altitude = 3;
+    PositionStatus status = 4;
+  }

@@ -1,0 +1,90 @@
+import os
+import pathlib
+import re
+import sys
+from setuptools import setup, find_packages
+
+assert sys.version_info >= (3, 6, 0), "gestalt requires Python 3.6+"
+
+THIS_DIR = pathlib.Path(__file__).parent
+
+
+def get_version() -> str:
+    init_file = THIS_DIR / "src" / "gestalt" / "__init__.py"
+    version_re = re.compile(r".*__version__\s=\s+[\'\"](?P<version>.*?)[\'\"]")
+    with open(init_file, "r", encoding="utf8") as init_fd:
+        match = version_re.search(init_fd.read())
+        if match:
+            version = match.group("version")
+        else:
+            raise RuntimeError(f"Cannot find __version__ in {init_file}")
+        return version
+
+
+def get_long_description() -> str:
+    readme_file = THIS_DIR / "README.rst"
+    with open(readme_file, encoding="utf8") as fd:
+        readme = fd.read()
+    changes_file = THIS_DIR / "CHANGELOG.rst"
+    with open(changes_file, encoding="utf8") as fd:
+        changes = fd.read()
+
+    return "\n\n".join([readme, changes])
+
+
+def get_requirements(requirements_file: str) -> str:
+    with open(requirements_file, encoding="utf8") as fd:
+        requirements = []
+        for line in fd.read().split("\n"):
+            line = line.strip()
+            if line and not line.startswith("#"):
+                requirements.append(line)
+        return requirements
+
+
+if __name__ == "__main__":
+    setup(
+        entry_points={
+            "console_scripts": [
+                "soar-adsb-sbs-client=soar.adsb.sbs.client:main",
+                "soar-adsb-sbs-recorder=soar.adsb.sbs.recorder:main",
+                "soar-adsb-sbs-producer=soar.mq.sbs_producer:main",
+                "soar-adsb-sbs-consumer=soar.mq.sbs_consumer:main",
+                "soar-adsb-sbs-replayer=soar.mq.sbs_replayer:main",
+                "soar-tracks-consumer=soar.mq.tracks_consumer:main",
+                "soar-apps-adsb-tracker=soar.apps.adsb_tracker:main",
+            ]
+        }
+    )
+
+if __name__ == "__main__":
+    setup(
+        name="gestalt",
+        description="gestalt is a Python application framework for building distributed systems",
+        long_description=get_long_description(),
+        license="MIT license",
+        url="https://github.com/claws/gestalt",
+        version=get_version(),
+        author="Chris Laws",
+        python_requires=">=3.6",
+        install_requires=get_requirements(THIS_DIR / "requirements.txt"),
+        package_dir={"": "src"},
+        packages=find_packages("src"),
+        extras_require={
+            "develop": get_requirements(THIS_DIR / "requirements.dev.txt"),
+            "amq": ["aio_pika"],
+            "protobuf": ["protobuf"],
+            "yaml": ["PyYAML"],
+            "avro": ["avro-python3"],
+            "msgpack": ["msgpack-python"],
+            "snappy": ["python-snappy"],
+            "brotli": ["brotli"],
+        },
+        classifiers=[
+            "Intended Audience :: Developers",
+            "Programming Language :: Python :: 3.6",
+            "Programming Language :: Python :: 3.7",
+            "Programming Language :: Python :: Implementation :: CPython",
+        ],
+        keywords=["gestalt", "framework", "communications"],
+    )
