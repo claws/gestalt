@@ -15,7 +15,7 @@ install:
   - make certs
   - make generate
   - make style.check
-  - pip install .[amq,protobuf,msgpack,avro,brotli,snappy,yaml]
+  - pip install .[amq,protobuf,msgpack,avro,brotli,yaml]
   - make dist
 script:
   - make test
