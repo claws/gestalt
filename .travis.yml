@@ -15,8 +15,8 @@ install:
   - make certs
   - make generate
   - make style.check
+  - pip install .[amq,protobuf,msgpack,avro,brotli,snappy,yaml]
   - make dist
-  - pip install dist/gestalt-*.whl[amq,protobuf,msgpack,avro,brotli,snappy,yaml]
 script:
   - make test
   - make docs
