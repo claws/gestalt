@@ -92,6 +92,7 @@ class Producer(object):
         content_type: str = None,
         compression: str = None,
         headers: Dict = None,
+        type_identifier: int = None,
     ):
         """ Publish a message.
 
@@ -112,6 +113,12 @@ class Producer(object):
 
         :param headers: Arbitrary headers to pass along with message.
 
+        :param type_identifier: An integer that uniquely identifies a
+          registered message. This parameter is only needed for some
+          serialization methods that do not code in type awareness, such
+          as Avro and Protobuf.
+
+
         """
         if self.connection is None:
             logger.error("Producer does not have a connection")
@@ -129,6 +136,7 @@ class Producer(object):
                 content_type=content_type,
                 compression=compression,
                 headers=headers,
+                type_identifier=type_identifier,
             )
         except Exception as exc:
             logger.exception("Error encoding payload")

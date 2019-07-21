@@ -207,8 +207,8 @@ class SerializerRegistry(object):
 
         Keywords:
 
-          :param protobuf_id: An integer that uniquely identifies the a
-            registered the Protobuf message.
+          :param type_identifier: An integer that uniquely identifies a
+            registered message.
 
         Raises:
             Exception: If the serialization method requested is not available.

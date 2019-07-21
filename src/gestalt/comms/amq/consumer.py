@@ -140,9 +140,6 @@ class Consumer(object):
         self.channel = None
         self.exchange = None
 
-    def subscribe(self, routing_key):
-        """ """
-
     async def on_message(self, message: aio_pika.IncomingMessage):
         """
 
@@ -153,7 +150,12 @@ class Consumer(object):
         # returns the message to the queue.
         async with message.process():
             if self._on_message_handler:
-                payload = utils.decode_message(message)
+                try:
+                    payload = utils.decode_message(message)
+                except Exception as exc:
+                    logger.exception("Problem in message decode function")
+                    return
+
                 try:
                     maybe_awaitable = self._on_message_handler(
                         payload, message  # message.properties
@@ -161,7 +163,8 @@ class Consumer(object):
                     if inspect.isawaitable(maybe_awaitable):
                         await maybe_awaitable
                 except Exception as exc:
-                    logger.exception(f"Problem in user message handler function: {exc}")
+                    logger.exception(f"Problem in user message handler function")
+                    return
 
     def _on_reconnected(self):
         logger.debug("Reconnected to broker!")

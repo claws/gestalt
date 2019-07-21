@@ -75,20 +75,20 @@ def encode_payload(
     # information to the message headers.
 
     # Google Protocol buffer decoders require awareness of the object type
-    # being decoded (referred to as a symbol). The symbol name is added to
+    # being decoded (referred to as a symbol). The symbol id is added to
     # the headers so that it can be used on the receiving side.
     if content_type == CONTENT_TYPE_PROTOBUF:
         if type_identifier is None:
             raise Exception("No protobuf id specified!")
-        headers["x-protobuf-id"] = type_identifier
+        headers["x-type-id"] = type_identifier
 
     # Avro decoders require awareness of the schema that describes the object.
     # This information is added to the headers so that it can be used on the
     # receiving side.
-    if content_type == CONTENT_TYPE_AVRO:
+    elif content_type == CONTENT_TYPE_AVRO:
         if type_identifier is None:
             raise Exception("No Avro id specified!")
-        headers["x-avro-id"] = type_identifier
+        headers["x-type-id"] = type_identifier
 
     serialization_name = registry.type_to_name[content_type]
 
@@ -152,19 +152,11 @@ def decode_payload(
 
 def decode_message(message: "aio_pika.IncomingMessage"):
     """ Decode a message payload """
-
-    if content_type == CONTENT_TYPE_AVRO:
-        type_identifier = message.headers.get("x-avro-id")
-    elif content_type == CONTENT_TYPE_PROTOBUF:
-        type_identifier = message.headers.get("x-protobuf-id")
-    else:
-        type_identifier = None
-    type_identifier
     payload = decode_payload(
         message.body,
         message.headers.get("compression"),
         message.content_type,
         message.content_encoding,
-        type_identifier=type_identifier,
+        type_identifier=message.headers.get("x-type-id"),
     )
     return payload

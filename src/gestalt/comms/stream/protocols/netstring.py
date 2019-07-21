@@ -5,7 +5,7 @@ import logging
 import os
 import struct
 
-from .base import BaseProtocol
+from .base import BaseStreamProtocol
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +22,7 @@ class ProtocolStates(enum.Enum):
     WAIT_PAYLOAD = 1
 
 
-class NetstringProtocol(BaseProtocol):
+class NetstringStreamProtocol(BaseStreamProtocol):
     """
     The netstring protocol implements a message framing strategy for
     sending and receiving network messages. The netstring frame header is
@@ -64,18 +64,13 @@ class NetstringProtocol(BaseProtocol):
     def send(self, data: bytes, add_frame_header=True, **kwargs):
         """ Sends a message by writing it to the transport.
 
-        :param msg_id: an optional message msg_id.
-
         :param add_frame_header: A flag that informs the sending function
           whether it needs to wrap the payload data with the frame header.
           Defaults to True. This parameter should be set to False when sending
           pre-formed messages - such as in a relay type application.
         """
         if not isinstance(data, bytes):
-            logger.error(
-                "data must be bytes - can't send message. "
-                f"msg_id={msg_id}, data={data}"
-            )
+            logger.error(f"data must be bytes - can't send message. data={data}")
             return
 
         header = struct.pack(NETSTRING_HEADER_FORMAT, len(data))
@@ -88,7 +83,7 @@ class NetstringProtocol(BaseProtocol):
     def data_received(self, data):
         """ Process some bytes received from the transport.
 
-        Upon receiving some bytes from the stream they areadded to a buffer
+        Upon receiving some bytes from the stream they are added to a buffer
         and then any messages in the buffer are extracted. The parser switches
         between a state where it is attempting to extract a frame header and
         a state where it is attempting to extract a message payload.

@@ -6,7 +6,7 @@ import socket
 import ssl
 import sys
 import unittest.mock
-from gestalt.comms.stream.netstring import NetstringClient, NetstringServer
+from gestalt.comms.stream.netstring import NetstringStreamClient, NetstringStreamServer
 import tls_utils
 
 py_ver = sys.version_info
@@ -14,7 +14,7 @@ PY36 = py_ver.major == 3 and py_ver.minor == 6
 PY37 = py_ver.major == 3 and py_ver.minor == 7
 
 
-class NetstringEndpointTestCase(asynctest.TestCase):
+class NetstringStreamEndpointTestCase(asynctest.TestCase):
     async def test_start_server(self):
         server_on_message_mock = unittest.mock.Mock()
         server_on_started_mock = unittest.mock.Mock()
@@ -22,7 +22,7 @@ class NetstringEndpointTestCase(asynctest.TestCase):
         server_on_peer_available_mock = unittest.mock.Mock()
         server_on_peer_unavailable_mock = unittest.mock.Mock()
 
-        server_ep = NetstringServer(
+        server_ep = NetstringStreamServer(
             on_message=server_on_message_mock,
             on_started=server_on_started_mock,
             on_stopped=server_on_stopped_mock,
@@ -77,7 +77,7 @@ class NetstringEndpointTestCase(asynctest.TestCase):
             server_on_peer_available_mock = unittest.mock.Mock()
             server_on_peer_unavailable_mock = unittest.mock.Mock()
 
-            server_ep = NetstringServer(
+            server_ep = NetstringStreamServer(
                 on_message=server_on_message_mock,
                 on_started=server_on_started_mock,
                 on_stopped=server_on_stopped_mock,
@@ -104,7 +104,7 @@ class NetstringEndpointTestCase(asynctest.TestCase):
         client_on_started_mock = asynctest.CoroutineMock()
         client_on_stopped_mock = asynctest.CoroutineMock()
 
-        client_ep = NetstringClient(
+        client_ep = NetstringStreamClient(
             on_started=client_on_started_mock, on_stopped=client_on_stopped_mock
         )
 
@@ -170,7 +170,7 @@ class NetstringEndpointTestCase(asynctest.TestCase):
         server_on_peer_available_mock = asynctest.CoroutineMock()
         server_on_peer_unavailable_mock = asynctest.CoroutineMock()
 
-        server_ep = NetstringServer(
+        server_ep = NetstringStreamServer(
             on_message=server_on_message_mock,
             on_started=server_on_started_mock,
             on_stopped=server_on_stopped_mock,
@@ -189,7 +189,7 @@ class NetstringEndpointTestCase(asynctest.TestCase):
         client_on_peer_available_mock = asynctest.CoroutineMock()
         client_on_peer_unavailable_mock = asynctest.CoroutineMock()
 
-        client_ep = NetstringClient(
+        client_ep = NetstringStreamClient(
             on_message=client_on_message_mock,
             on_started=client_on_started_mock,
             on_stopped=client_on_stopped_mock,
@@ -261,7 +261,7 @@ class NetstringEndpointTestCase(asynctest.TestCase):
         server_on_started_mock = asynctest.CoroutineMock()
         server_on_stopped_mock = asynctest.CoroutineMock()
 
-        server_ep = NetstringServer(
+        server_ep = NetstringStreamServer(
             on_started=server_on_started_mock, on_stopped=server_on_stopped_mock
         )
 
@@ -270,7 +270,7 @@ class NetstringEndpointTestCase(asynctest.TestCase):
 
         address, port = server_ep.bindings[0]
 
-        client_ep = NetstringClient()
+        client_ep = NetstringStreamClient()
 
         try:
             if PY36:
@@ -364,7 +364,7 @@ class NetstringEndpointTestCase(asynctest.TestCase):
         server_on_started_mock = asynctest.CoroutineMock()
         server_on_stopped_mock = asynctest.CoroutineMock()
 
-        server_ep = NetstringServer(
+        server_ep = NetstringStreamServer(
             on_started=server_on_started_mock, on_stopped=server_on_stopped_mock
         )
 
@@ -373,7 +373,7 @@ class NetstringEndpointTestCase(asynctest.TestCase):
 
         address, port = server_ep.bindings[0]
 
-        client_ep = NetstringClient()
+        client_ep = NetstringStreamClient()
 
         try:
             if PY36:
@@ -465,7 +465,7 @@ class NetstringEndpointTestCase(asynctest.TestCase):
         server_on_started_mock = asynctest.CoroutineMock()
         server_on_stopped_mock = asynctest.CoroutineMock()
 
-        server_ep = NetstringServer(
+        server_ep = NetstringStreamServer(
             on_started=server_on_started_mock, on_stopped=server_on_stopped_mock
         )
 
@@ -474,7 +474,7 @@ class NetstringEndpointTestCase(asynctest.TestCase):
 
         address, port = server_ep.bindings[0]
 
-        client_ep = NetstringClient()
+        client_ep = NetstringStreamClient()
 
         try:
             if PY36:

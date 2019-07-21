@@ -17,24 +17,15 @@ Messages with a payload size of zero are invalid.
 
 """
 
-import asyncio
-import binascii
-import enum
-import logging
-import os
-import struct
-
-from gestalt.comms.stream.endpoint import Client, Server
-from gestalt.comms.stream.protocols.netstring import NetstringProtocol
-
-logger = logging.getLogger(__name__)
+from gestalt.comms.stream.endpoint import StreamClient, StreamServer
+from gestalt.comms.stream.protocols.netstring import NetstringStreamProtocol
 
 
-class NetstringClient(Client):
+class NetstringStreamClient(StreamClient):
 
-    protocol_class = NetstringProtocol
+    protocol_class = NetstringStreamProtocol
 
 
-class NetstringServer(Server):
+class NetstringStreamServer(StreamServer):
 
-    protocol_class = NetstringProtocol
+    protocol_class = NetstringStreamProtocol

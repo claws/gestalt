@@ -1,23 +1,14 @@
 import asyncio
 import binascii
-import enum
 import logging
 import os
-import struct
 
 
 logger = logging.getLogger(__name__)
 
 
-class BaseStreamProtocol(asyncio.Protocol):
-    """
-    This class implements the minimum interface expected by Endpoint.
-
-    This protocol implementation is not capable of extracting atomic messages
-    from a stream. It simply transfers any received bytes to the message
-    handler callback. Users of this class need to implement a message parser
-    themself.
-    """
+class BaseDatagramProtocol(asyncio.DatagramProtocol):
+    """ Datagram protocol for an endpoint. """
 
     def __init__(
         self,
@@ -29,7 +20,7 @@ class BaseStreamProtocol(asyncio.Protocol):
         """
 
         :param on_message: A callback function that will be passed each message
-          that the protocol extracts from the stream.
+          that the protocol receives.
 
         :param on_peer_available: A callback function that will be called when
           the protocol is connected with a transport. In this state the protocol
@@ -42,10 +33,15 @@ class BaseStreamProtocol(asyncio.Protocol):
         self._on_message_handler = on_message
         self._on_peer_available_handler = on_peer_available
         self._on_peer_unavailable_handler = on_peer_unavailable
+        self._identity = b""
         self._remote_address = None
         self._local_address = None
-        self._peercert = None
-        self._identity = b""
+        self.transport = None
+
+    @property
+    def identity(self):
+        """ Return the protocol's unique identifier """
+        return self._identity
 
     @property
     def raddr(self):
@@ -57,33 +53,14 @@ class BaseStreamProtocol(asyncio.Protocol):
         """ Return the local address the protocol is using """
         return self._local_address
 
-    @property
-    def identity(self):
-        """ Return the protocol's unique identifier.
-
-        A protocol's unique identity provides a method for routing a message
-        (e.g. a response) to a specific peer (e.g. the originator).
-        """
-        return self._identity
-
     def connection_made(self, transport):
-        """
-        Called by the event loop when the protocol is connected with a transport.
-        """
         self.transport = transport
-        self._remote_address = transport.get_extra_info("peername")
-        self._local_address = transport.get_extra_info("sockname")
-        self._peercert = transport.get_extra_info("peercert")
         self._identity = binascii.hexlify(os.urandom(5))
+        self._local_address = transport.get_extra_info("sockname")
+        self._remote_address = transport.get_extra_info("peername")
 
-        logger.debug(
-            f"Connection made. id={self._identity}, "
-            f"laddr={self._local_address}, "
-            f"raddr={self._remote_address}, "
-            f"peercert={self._peercert}"
-        )
+        logger.debug(f"UDP protocol connection made. id={self._identity}")
 
-        # Don't let user code break the library
         try:
             if self._on_peer_available_handler:
                 self._on_peer_available_handler(self, self._identity)
@@ -94,58 +71,63 @@ class BaseStreamProtocol(asyncio.Protocol):
         """
         Called by the event loop when the protocol is disconnected from a transport.
         """
-        logger.debug(
-            f"Connection lost. id={self._identity}, "
-            f"laddr={self._local_address}, "
-            f"raddr={self._remote_address}"
-        )
-
-        # Don't let user code break the library
+        logger.debug(f"UDP protocol connection lost. id={self._identity}")
         try:
             if self._on_peer_unavailable_handler:
                 self._on_peer_unavailable_handler(self, self._identity)
         except Exception as exc:
             logger.exception("Error in on_peer_unavailable callback method")
 
-        if hasattr(self, "transport"):
-            if self.transport:
-                self.transport.close()  # resolves a sslproto.py related warning.
-
         self.transport = None
-        self._remote_address = None
-        self._local_address = None
         self._identity = None
+        self._local_address = None
 
     def close(self):
-        """
-        Close this connection.
-        """
-        logger.debug(
-            f"Closing connection. id={self._identity}, "
-            f"laddr={self._local_address}, raddr={self._remote_address}"
-        )
-
+        """ Close this connection """
+        logger.debug(f"Closing connection. id={self._identity}")
         if self.transport:
             self.transport.close()
 
-    def send(self, data: bytes, **kwargs):
-        """ Sends a message by writing it to the transport.
+    def send(self, data, addr=None, **kwargs):
+        """
+        Send a message to a remote UDP endpoint by writing it to the transport.
 
         :param data: a bytes object containing the message payload.
+
+        :param addr: The address of the remote endpoint as a (host, port)
+          tuple. If remote_addr was specified when the endpoint was created then
+          the addr is optional.
         """
         if not isinstance(data, bytes):
             logger.error(f"data must be bytes - can't send message. data={type(data)}")
             return
 
-        logger.debug(f"Sending msg with {len(data)} bytes")
+        self.transport.sendto(data, addr=addr)
 
-        self.transport.write(data)
+    def datagram_received(self, data, addr):
+        """
+        Process a datagram received from the transport.
 
-    def data_received(self, data):
-        """ Process some bytes received from the transport."""
-        # Don't let user code break the library
+        When passing a message up to the endpoint, the datagram protocol
+        passes the senders address as an extra kwarg.
+
+        :param data: The datagram payload
+
+        :param addr: A (host, port) tuple defining the source address
+
+        """
         try:
             if self._on_message_handler:
-                self._on_message_handler(self, self._identity, msg)
+                self._on_message_handler(self, self._identity, data, addr=addr)
         except Exception as exc:
             logger.exception("Error in on_message callback method")
+
+    def error_received(self, exc):
+        """
+        In many conditions undeliverable datagrams will be silently dropped.
+        In some rare conditions the transport can sometimes detect that the
+        datagram could not be delivered to the recipient.
+
+        :param exc: an OSError instance.
+        """
+        logger.error(f"Datagram error: {exc}")

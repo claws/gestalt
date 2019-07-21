@@ -126,13 +126,13 @@ class RabbitmqUtilitiesTestCase(unittest.TestCase):
             type_identifier=type_identifier,
         )
         self.assertNotIn("compression", headers)
-        self.assertIn("x-protobuf-id", headers)
+        self.assertIn("x-type-id", headers)
 
         data = utils.decode_payload(
             payload,
             content_type=content_type,
             content_encoding=content_encoding,
-            type_identifier=headers["x-protobuf-id"],
+            type_identifier=headers["x-type-id"],
         )
         self.assertEqual(data, PROTOBUF_DATA)
 
@@ -174,13 +174,13 @@ class RabbitmqUtilitiesTestCase(unittest.TestCase):
                 if compression_name:
                     self.assertIn("compression", headers)
 
-                self.assertIn("x-avro-id", headers)
+                self.assertIn("x-type-id", headers)
 
                 data = utils.decode_payload(
                     payload,
                     compression=compression_mime_type,
                     content_type=content_type,
                     content_encoding=content_encoding,
-                    type_identifier=headers["x-avro-id"],
+                    type_identifier=headers["x-type-id"],
                 )
                 self.assertEqual(data, AVRO_DATA)

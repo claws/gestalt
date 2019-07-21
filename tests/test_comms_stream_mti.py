@@ -2,20 +2,19 @@ import asyncio
 import asynctest
 import logging
 import socket
-import struct
 import unittest.mock
 import typing
 from gestalt import serialization
-from gestalt.comms.stream.mti import MtiClient, MtiServer
+from gestalt.comms.stream.mti import MtiStreamClient, MtiStreamServer
 
 
-class MtiEndpointTestCase(asynctest.TestCase):
+class MtiStreamEndpointTestCase(asynctest.TestCase):
     async def test_start_server(self):
         """ Check a MTI server can be started """
         server_on_started_mock = unittest.mock.Mock()
         server_on_stopped_mock = unittest.mock.Mock()
 
-        server_ep = MtiServer(
+        server_ep = MtiStreamServer(
             on_started=server_on_started_mock, on_stopped=server_on_stopped_mock
         )
 
@@ -63,7 +62,7 @@ class MtiEndpointTestCase(asynctest.TestCase):
             server_on_started_mock = unittest.mock.Mock()
             server_on_stopped_mock = unittest.mock.Mock()
 
-            server_ep = MtiServer(
+            server_ep = MtiStreamServer(
                 on_started=server_on_started_mock, on_stopped=server_on_stopped_mock
             )
 
@@ -86,7 +85,7 @@ class MtiEndpointTestCase(asynctest.TestCase):
         client_on_started_mock = asynctest.CoroutineMock()
         client_on_stopped_mock = asynctest.CoroutineMock()
 
-        client_ep = MtiClient(
+        client_ep = MtiStreamClient(
             on_started=client_on_started_mock, on_stopped=client_on_stopped_mock
         )
 
@@ -153,7 +152,7 @@ class MtiEndpointTestCase(asynctest.TestCase):
         server_on_peer_available_mock = asynctest.CoroutineMock()
         server_on_peer_unavailable_mock = asynctest.CoroutineMock()
 
-        server_ep = MtiServer(
+        server_ep = MtiStreamServer(
             on_message=server_on_message_mock,
             on_started=server_on_started_mock,
             on_stopped=server_on_stopped_mock,
@@ -172,7 +171,7 @@ class MtiEndpointTestCase(asynctest.TestCase):
         client_on_peer_available_mock = asynctest.CoroutineMock()
         client_on_peer_unavailable_mock = asynctest.CoroutineMock()
 
-        client_ep = MtiClient(
+        client_ep = MtiStreamClient(
             on_message=client_on_message_mock,
             on_started=client_on_started_mock,
             on_stopped=client_on_stopped_mock,
@@ -227,7 +226,7 @@ class MtiEndpointTestCase(asynctest.TestCase):
         server_on_peer_available_mock = asynctest.CoroutineMock()
         server_on_peer_unavailable_mock = asynctest.CoroutineMock()
 
-        server_ep = MtiServer(
+        server_ep = MtiStreamServer(
             on_message=server_on_message_mock,
             on_started=server_on_started_mock,
             on_stopped=server_on_stopped_mock,
@@ -247,7 +246,7 @@ class MtiEndpointTestCase(asynctest.TestCase):
         client_on_peer_available_mock = asynctest.CoroutineMock()
         client_on_peer_unavailable_mock = asynctest.CoroutineMock()
 
-        client_ep = MtiClient(
+        client_ep = MtiStreamClient(
             on_message=client_on_message_mock,
             on_started=client_on_started_mock,
             on_stopped=client_on_stopped_mock,
@@ -305,7 +304,7 @@ class MtiEndpointTestCase(asynctest.TestCase):
         server_on_peer_available_mock = asynctest.CoroutineMock()
         server_on_peer_unavailable_mock = asynctest.CoroutineMock()
 
-        server_ep = MtiServer(
+        server_ep = MtiStreamServer(
             on_message=server_on_message_mock,
             on_started=server_on_started_mock,
             on_stopped=server_on_stopped_mock,
@@ -325,7 +324,7 @@ class MtiEndpointTestCase(asynctest.TestCase):
         client_on_peer_available_mock = asynctest.CoroutineMock()
         client_on_peer_unavailable_mock = asynctest.CoroutineMock()
 
-        client_ep = MtiClient(
+        client_ep = MtiStreamClient(
             on_message=client_on_message_mock,
             on_started=client_on_started_mock,
             on_stopped=client_on_stopped_mock,
@@ -388,7 +387,7 @@ class MtiEndpointTestCase(asynctest.TestCase):
         server_on_peer_available_mock = asynctest.CoroutineMock()
         server_on_peer_unavailable_mock = asynctest.CoroutineMock()
 
-        server_ep = MtiServer(
+        server_ep = MtiStreamServer(
             on_message=server_on_message_mock,
             on_started=server_on_started_mock,
             on_stopped=server_on_stopped_mock,
@@ -408,7 +407,7 @@ class MtiEndpointTestCase(asynctest.TestCase):
         client_on_peer_available_mock = asynctest.CoroutineMock()
         client_on_peer_unavailable_mock = asynctest.CoroutineMock()
 
-        client_ep = MtiClient(
+        client_ep = MtiStreamClient(
             on_message=client_on_message_mock,
             on_started=client_on_started_mock,
             on_stopped=client_on_stopped_mock,

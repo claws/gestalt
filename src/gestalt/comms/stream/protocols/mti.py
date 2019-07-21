@@ -5,7 +5,7 @@ import logging
 import os
 import struct
 
-from .base import BaseProtocol
+from .base import BaseStreamProtocol
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +22,7 @@ class ProtocolStates(enum.Enum):
     WAIT_PAYLOAD = 1
 
 
-class MtiProtocol(BaseProtocol):
+class MtiStreamProtocol(BaseStreamProtocol):
     """
     The Message Type Identifier (MTI) protocol uses a message framing strategy
     when sending and receiving messages. The message framing strategy adds a

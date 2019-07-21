@@ -6,7 +6,7 @@ import socket
 
 from ssl import SSLContext
 from gestalt import serialization
-from gestalt.comms.stream.protocols.base import BaseProtocol
+from gestalt.comms.stream.protocols.base import BaseStreamProtocol
 from typing import Any, List, Sequence, Tuple
 
 logger = logging.getLogger(__name__)
@@ -19,12 +19,12 @@ BACKOFF_MAX = 180
 BACKOFF_JITTER = 0.05
 
 
-class EndpointModes(enum.Enum):
+class StreamEndpointModes(enum.Enum):
     Server = 0
     Client = 1
 
 
-class Endpoint(object):
+class StreamEndpoint(object):
     """
     An endpoint is used to communicate with other stream oriented interfaces.
 
@@ -41,7 +41,7 @@ class Endpoint(object):
     # Concrete endpoint implementations must define the protocol object to
     # be instantiated to handle a connection with a peer. The protocol is
     # expected to inherit from the
-    # :ref:`gestalt.comms.streams.protocols.base.BaseProtocol` interface.
+    # :ref:`gestalt.comms.streams.protocols.base.BaseStreamProtocol` interface.
     protocol_class = None
 
     is_server: bool = False
@@ -97,12 +97,14 @@ class Endpoint(object):
         codec = serialization.registry.get_codec(self.serialization_name)
         self.content_encoding = codec.content_encoding
 
-        if not issubclass(self.protocol_class, BaseProtocol):
+        if not issubclass(self.protocol_class, BaseStreamProtocol):
             raise Exception(
-                f"Endpoint protocol class must be a subclass of BaseProtocol, got {self.protocol_class}"
+                f"Endpoint protocol class must be a subclass of BaseStreamProtocol, got {self.protocol_class}"
             )
 
-        self._mode = EndpointModes.Server if self.is_server else EndpointModes.Client
+        self._mode = (
+            StreamEndpointModes.Server if self.is_server else StreamEndpointModes.Client
+        )
         self._mode_str = self._mode.name
         self._peers = {}
         self._addr = ""
@@ -282,11 +284,6 @@ class Endpoint(object):
             logger.error(f"No peers to send message to!")
             return
 
-        # If a non-zero type_identifier is passed in then attempt to encode the
-        # message using the serialization name specified at initialization of
-        # the endpoint. This relies on a message having been registered with the
-        # identifier.
-        # if type_identifier:
         content_type, content_encoding, data = serialization.dumps(
             data, self.serialization_name
         )
@@ -513,7 +510,6 @@ class Endpoint(object):
             if self._on_message_handler:
 
                 type_identifier = kwargs.get("type_identifier")
-                # if type_identifier:
                 data = serialization.loads(
                     data,
                     content_type=self.content_type,
@@ -526,11 +522,11 @@ class Endpoint(object):
             logger.exception("Error in on_message callback method")
 
 
-class Server(Endpoint):
+class StreamServer(StreamEndpoint):
     """ An endpoint configured to operate as a server """
 
     is_server = True
 
 
-class Client(Endpoint):
+class StreamClient(StreamEndpoint):
     """ An endpoint configured to operate as a client """
