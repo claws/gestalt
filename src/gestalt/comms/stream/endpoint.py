@@ -449,9 +449,6 @@ class StreamEndpoint(object):
         :param prot: The protocol instance responsible for the peer.
 
         :param peer_id: The peer's unique identity.
-
-        :param peer_id: A unique peer identity that can be used to route
-          messages to the peer.
         """
         self._peers[peer_id] = prot
 

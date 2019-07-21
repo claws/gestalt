@@ -209,8 +209,27 @@ class DatagramEndpoint(object):
         """
         Open a datagram endpoint.
 
+        :param local_addr: If given, is a (local_host, local_port) tuple used to
+          bind the socket to locally.
+
+        :param remote_addr: If given, is a (remote_host, remote_port) tuple used
+          to connect the socket to a remote address.
+
         :param family: An optional address family integer from the socket module.
           Defaults to socket.AF_INET IPv4.
+
+        :param reuse_address: tells the kernel to reuse a local socket in
+          TIME_WAIT state, without waiting for its natural timeout to expire.
+          If not specified will automatically be set to True on Unix.
+
+        :param reuse_port: tells the kernel to allow this endpoint to be bound
+          to the same port as other existing endpoints are bound to, so long
+          as they all set this flag when being created. This option is not
+          supported on Windows and some Unixes. If the SO_REUSEPORT constant
+          is not defined then this capability is unsupported.
+
+        :param allow_broadcast: tells the kernel to allow this endpoint to
+          send messages to the broadcast address.
         """
         try:
             _transport, _protocol = await self.loop.create_datagram_endpoint(
@@ -230,56 +249,21 @@ class DatagramEndpoint(object):
                 logger.exception("Error in on_started callback method")
 
         except (ConnectionRefusedError, OSError) as exc:
-            logger.error(f"Connection to {addr}:{port} was refused: {exc}")
+            logger.error(
+                f"Connection refused (local_addr={local_addr},remote_addr={remote_addr}): {exc}")
         except Exception as exc:
-            logger.exception(f"Unexpected error binding to {addr}:{port}: {exc}")
-
-    # async def _listen(
-    #     self,
-    #     addr: str,
-    #     port: int,
-    #     family: int = socket.AF_INET,
-    #     reuse_address: bool = False,
-    #     reuse_port: bool = False,
-    #     allow_broadcast: bool = False,
-    # ) -> None:
-    #     """
-    #     Open a datagram endpoint bound to a local address.
-
-    #     :param family: An optional address family integer from the socket module.
-    #       Defaults to socket.AF_INET IPv4.
-    #     """
-    #     try:
-    #         _transport, _protocol = await self.loop.create_datagram_endpoint(
-    #             self._protocol_factory,
-    #             local_addr=(addr, port),
-    #             family=family,
-    #             reuse_address=self.reuse_address,
-    #             reuse_port=self.reuse_port,
-    #             allow_broadcast=self.allow_broadcast)
-
-    #         try:
-    #             if self._on_started_handler:
-    #                 self._on_started_handler(self)
-    #         except Exception as exc:
-    #             logger.exception("Error in on_started callback method")
-
-    #     except (ConnectionRefusedError, OSError) as exc:
-    #         logger.error(f"Connection to {addr}:{port} was refused: {exc}")
-    #     except Exception as exc:
-    #         logger.exception(f"Unexpected error binding to {addr}:{port}: {exc}")
+            logger.exception(
+                "Unexpected error binding UDP endpoint "
+                f"(local_addr={local_addr},remote_addr={remote_addr}): {exc}")
 
     def on_peer_available(self, prot, peer_id: bytes):
-        """ Called from a protocol instance when its transport is available.
+        """ Called from the protocol instance when its transport is available.
 
-        This means that the peer is ready for sending or receiving messages.
+        This means that the endpoint is ready for sending or receiving messages.
 
-        :param prot: The protocol instance responsible for the peer.
+        :param prot: The protocol instance responsible for the peer transport.
 
         :param peer_id: The peer's unique identity.
-
-        :param peer_id: A unique peer identity that can be used to route
-          messages to the peer.
         """
         self._protocol = prot
         try:

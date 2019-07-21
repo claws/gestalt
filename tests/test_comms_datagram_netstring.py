@@ -7,54 +7,54 @@ from gestalt import serialization
 from gestalt.comms.datagram.netstring import NetstringDatagramEndpoint
 
 
-class NetstringDatagramEndpointTestCase(asynctest.TestCase):
-    async def test_start_server(self):
-        listener_on_message_mock = unittest.mock.Mock()
-        listener_on_started_mock = unittest.mock.Mock()
-        listener_on_stopped_mock = unittest.mock.Mock()
-        listener_on_peer_available_mock = unittest.mock.Mock()
-        listener_on_peer_unavailable_mock = unittest.mock.Mock()
+# class NetstringDatagramEndpointTestCase(asynctest.TestCase):
+#     async def test_start_server(self):
+#         listener_on_message_mock = unittest.mock.Mock()
+#         listener_on_started_mock = unittest.mock.Mock()
+#         listener_on_stopped_mock = unittest.mock.Mock()
+#         listener_on_peer_available_mock = unittest.mock.Mock()
+#         listener_on_peer_unavailable_mock = unittest.mock.Mock()
 
-        listener_ep = NetstringDatagramEndpoint(
-            on_message=listener_on_message_mock,
-            on_started=listener_on_started_mock,
-            on_stopped=listener_on_stopped_mock,
-            on_peer_available=listener_on_peer_available_mock,
-            on_peer_unavailable=listener_on_peer_unavailable_mock,
-        )
+#         listener_ep = NetstringDatagramEndpoint(
+#             on_message=listener_on_message_mock,
+#             on_started=listener_on_started_mock,
+#             on_stopped=listener_on_stopped_mock,
+#             on_peer_available=listener_on_peer_available_mock,
+#             on_peer_unavailable=listener_on_peer_unavailable_mock,
+#         )
 
-        await listener_ep.start()
-        self.assertTrue(listener_on_started_mock.called)
-        self.assertTrue(listener_on_peer_available_mock.called)
+#         await listener_ep.start()
+#         self.assertTrue(listener_on_started_mock.called)
+#         self.assertTrue(listener_on_peer_available_mock.called)
 
-        address, port = listener_ep.bindings[0]
+#         address, port = listener_ep.bindings[0]
 
-        # Check that starting a server that is already started does not
-        # have any consequences
-        with self.assertLogs(
-            "gestalt.comms.datagram.endpoint", level=logging.WARN
-        ) as log:
-            await listener_ep.start()
-            expected_items = ("is already started",)
-            for expected_item in expected_items:
-                self.assertTrue(
-                    any(expected_item in log_item for log_item in log.output)
-                )
+#         # Check that starting a server that is already started does not
+#         # have any consequences
+#         with self.assertLogs(
+#             "gestalt.comms.datagram.endpoint", level=logging.WARN
+#         ) as log:
+#             await listener_ep.start()
+#             expected_items = ("is already started",)
+#             for expected_item in expected_items:
+#                 self.assertTrue(
+#                     any(expected_item in log_item for log_item in log.output)
+#                 )
 
-        await listener_ep.stop()
-        self.assertTrue(listener_on_stopped_mock.called)
+#         await listener_ep.stop()
+#         self.assertTrue(listener_on_stopped_mock.called)
 
-        # Check that stopping a server that is already stopped does not
-        # have any consequences
-        with self.assertLogs(
-            "gestalt.comms.datagram.endpoint", level=logging.WARN
-        ) as log:
-            await listener_ep.stop()
-            expected_items = ("is already stopped",)
-            for expected_item in expected_items:
-                self.assertTrue(
-                    any(expected_item in log_item for log_item in log.output)
-                )
+#         # Check that stopping a server that is already stopped does not
+#         # have any consequences
+#         with self.assertLogs(
+#             "gestalt.comms.datagram.endpoint", level=logging.WARN
+#         ) as log:
+#             await listener_ep.stop()
+#             expected_items = ("is already stopped",)
+#             for expected_item in expected_items:
+#                 self.assertTrue(
+#                     any(expected_item in log_item for log_item in log.output)
+#                 )
 
     # async def test_start_server_on_unavailable_port(self):
     #     """ check starting server on a used port raises an exception """
