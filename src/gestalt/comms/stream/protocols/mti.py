@@ -53,7 +53,7 @@ class MtiStreamProtocol(BaseStreamProtocol):
     the message identifier. This can be used to notify recipients of simple
     events that do no need any extra context.
 
-    Upon extracting a message from the stream the PAL protocol passes the
+    Upon extracting a message from the stream the mti protocol passes the
     message payload data to the on_message handler along with the optional
     message identifier.
     """

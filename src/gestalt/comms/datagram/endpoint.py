@@ -21,7 +21,7 @@ class DatagramEndpoint(object):
     # be instantiated to handle a connection. The protocol is
     # expected to inherit from the
     # :ref:`gestalt.comms.datagram.protocols.base.BaseDatagramProtocol` interface.
-    protocol_class = None
+    protocol_class = BaseDatagramProtocol
 
     def __init__(
         self,
@@ -75,32 +75,37 @@ class DatagramEndpoint(object):
         """ Return a client endpoint's connect addresses """
         return [self._protocol.raddr] if self.running else []
 
+    def register_message(self, type_identifier: int, obj: Any):
+        """
+        Register a message object with a unique message identifier.
+
+        :param type_identifier: A message type identifier to use for the
+          object.
+
+        :param obj: The message object to associate with the identifier.
+        """
+        serializer = serialization.registry.get_serializer(self.serialization_name)
+        serializer.registry.register_message(obj, type_identifier=type_identifier)
+
     async def start(
         self,
-        addr: str = "",
-        port: int = 0,
+        local_addr: Tuple[str, int] = None,
+        remote_addr: Tuple[str, int] = None,
         family: int = socket.AF_INET,
-        remote: bool = False,
         reuse_address: bool = False,
         reuse_port: bool = False,
         allow_broadcast: bool = False,
     ) -> None:
         """ Start datagam endpoint.
 
-        :param addr: The address to connect or bind to. Defaults to an empty
-          string which means all interfaces.
+        :param local_addr: If given, is a (host, port) tuple used to bind the
+          socket to locally.
 
-        :param host: The port to connect or bind to. Defaults to 0 which
-          results in an ephemeral port being used.
+        :param remote_addr: If given, is a (host, port) tuple used to connect
+          the socket to a remote address.
 
         :param family: An optional address family integer from the socket module.
           Defaults to socket.AF_INET IPv4.
-
-        :param remote: A boolean flag that determines what kind of datagram
-          endpoint to create. If remote is False then bind locally to the
-          supplied host and port to listen for datagrams. If remote is True
-          then establish an endpoint that communicates with the supplied
-          host and port on a remote machine.
 
         :param reuse_address: tells the kernel to reuse a local socket in
           TIME_WAIT state, without waiting for its natural timeout to expire.
@@ -116,28 +121,50 @@ class DatagramEndpoint(object):
           send messages to the broadcast address.
         """
         if self.running:
-            logger.warning(f"Datagram endpoint is already started")
             return
+
+        if local_addr is None and remote_addr is None:
+            raise Exception("At least one of local_addr or remote addr must be defined")
+
+        if local_addr and remote_addr:
+            raise Exception(
+                "Only one of local_addr or remote addr may be defined, not both"
+            )
 
         logger.debug(f"Starting datagram endpoint")
 
-        self._remote = remote
+        try:
+            _transport, _protocol = await self.loop.create_datagram_endpoint(
+                self._protocol_factory,
+                local_addr=local_addr,
+                remote_addr=remote_addr,
+                family=family,
+                reuse_address=reuse_address,
+                reuse_port=reuse_port,
+                allow_broadcast=allow_broadcast,
+            )
 
-        await self._open(
-            local_addr=(addr, port) if not remote else None,
-            remote_addr=(addr, port) if remote else None,
-            family=family,
-            reuse_address=reuse_address,
-            reuse_port=reuse_port,
-            allow_broadcast=allow_broadcast,
-        )
+            self._running = True
 
-        self._running = True
+            try:
+                if self._on_started_handler:
+                    self._on_started_handler(self)
+            except Exception as exc:
+                logger.exception("Error in on_started callback method")
+
+        except (ConnectionRefusedError, OSError) as exc:
+            logger.error(
+                f"Connection refused (local_addr={local_addr},remote_addr={remote_addr}): {exc}"
+            )
+        except Exception as exc:
+            logger.exception(
+                "Unexpected error binding UDP endpoint "
+                f"(local_addr={local_addr},remote_addr={remote_addr}): {exc}"
+            )
 
     async def stop(self):
         """ Stop datagram endpoint """
         if not self.running:
-            logger.warning("Datagram endpoint is already stopped")
             return
 
         logger.debug("Stopping datagram endpoint")
@@ -231,32 +258,6 @@ class DatagramEndpoint(object):
         :param allow_broadcast: tells the kernel to allow this endpoint to
           send messages to the broadcast address.
         """
-        try:
-            _transport, _protocol = await self.loop.create_datagram_endpoint(
-                self._protocol_factory,
-                local_addr=local_addr,
-                remote_addr=remote_addr,
-                family=family,
-                reuse_address=reuse_address,
-                reuse_port=reuse_port,
-                allow_broadcast=allow_broadcast,
-            )
-
-            try:
-                if self._on_started_handler:
-                    self._on_started_handler(self)
-            except Exception as exc:
-                logger.exception("Error in on_started callback method")
-
-        except (ConnectionRefusedError, OSError) as exc:
-            logger.error(
-                f"Connection refused (local_addr={local_addr},remote_addr={remote_addr}): {exc}"
-            )
-        except Exception as exc:
-            logger.exception(
-                "Unexpected error binding UDP endpoint "
-                f"(local_addr={local_addr},remote_addr={remote_addr}): {exc}"
-            )
 
     def on_peer_available(self, prot, peer_id: bytes):
         """ Called from the protocol instance when its transport is available.
@@ -315,13 +316,3 @@ class DatagramEndpoint(object):
                 self._on_message_handler(data, peer_id=peer_id, **kwargs)
         except Exception as exc:
             logger.exception("Error in on_message callback method")
-
-
-# class DatagramServer(DatagramEndpoint):
-#     """ An endpoint configured to operate as a server """
-
-#     is_server = True
-
-
-# class DatagramClient(DatagramEndpoint):
-#     """ An endpoint configured to operate as a client """

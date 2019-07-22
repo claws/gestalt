@@ -190,7 +190,6 @@ class StreamEndpoint(object):
           is dropped. Only used for endpoints operating as a client.
         """
         if self.running:
-            logger.warning(f"{self._mode_str} is already started")
             return
 
         logger.debug(f"Starting {self._mode_str}")
@@ -222,7 +221,6 @@ class StreamEndpoint(object):
 
         """
         if not self.running:
-            logger.warning(f"{self._mode_str} is already stopped")
             return
 
         logger.debug(f"Stopping {self._mode_str}")

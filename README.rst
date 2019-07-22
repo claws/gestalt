@@ -4,6 +4,8 @@
 .. image:: https://img.shields.io/pypi/v/gestalt.svg
     :target: https://pypi.python.org/pypi/gestalt
 
+.. image:: https://img.shields.io/badge/code%20style-black-000000.svg
+
 
 Gestalt
 #######

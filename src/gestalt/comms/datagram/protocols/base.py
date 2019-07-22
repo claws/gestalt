@@ -102,6 +102,7 @@ class BaseDatagramProtocol(asyncio.DatagramProtocol):
             logger.error(f"data must be bytes - can't send message. data={type(data)}")
             return
 
+        print(f"sending to {addr}")
         self.transport.sendto(data, addr=addr)
 
     def datagram_received(self, data, addr):

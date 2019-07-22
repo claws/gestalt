@@ -50,65 +50,65 @@ class CompressionTestCase(unittest.TestCase):
                     self.assertEqual(content_type, mime_type)
                     self.assertEqual(d, TEST_DATA)
 
-    # def test_none_compression(self):
-    #     codecs = compression.registry.get_supported_codecs()
-    #     self.assertIn(None, codecs)
+    def test_none_compression(self):
+        codecs = compression.registry.get_supported_codecs()
+        self.assertIn(None, codecs)
 
-    #     content_type, payload = compression.compress(TEST_DATA)
-    #     self.assertIsNone(content_type)
-    #     self.assertEqual(TEST_DATA, payload)
-    #     content_type, d = compression.decompress(payload)
-    #     self.assertIsNone(content_type)
-    #     self.assertEqual(d, TEST_DATA)
+        content_type, payload = compression.compress(TEST_DATA)
+        self.assertIsNone(content_type)
+        self.assertEqual(TEST_DATA, payload)
+        content_type, d = compression.decompress(payload)
+        self.assertIsNone(content_type)
+        self.assertEqual(d, TEST_DATA)
 
-    # def test_zlib_compression(self):
-    #     convenience_name = "zlib"
-    #     mime_type = compression.COMPRESSION_ZLIB
+    def test_zlib_compression(self):
+        convenience_name = "zlib"
+        mime_type = compression.COMPRESSION_ZLIB
 
-    #     for c_name in (convenience_name, mime_type):
-    #         content_type, payload = compression.compress(TEST_DATA, c_name)
-    #         self.assertEqual(content_type, mime_type)
-    #         self.assertNotEqual(TEST_DATA, payload)
-    #         content_type, d = compression.decompress(payload, content_type)
-    #         self.assertEqual(content_type, mime_type)
-    #         self.assertEqual(d, TEST_DATA)
+        for c_name in (convenience_name, mime_type):
+            content_type, payload = compression.compress(TEST_DATA, c_name)
+            self.assertEqual(content_type, mime_type)
+            self.assertNotEqual(TEST_DATA, payload)
+            content_type, d = compression.decompress(payload, content_type)
+            self.assertEqual(content_type, mime_type)
+            self.assertEqual(d, TEST_DATA)
 
-    # def test_deflate_compression(self):
-    #     convenience_name = "deflate"
-    #     mime_type = compression.COMPRESSION_DEFLATE
+    def test_deflate_compression(self):
+        convenience_name = "deflate"
+        mime_type = compression.COMPRESSION_DEFLATE
 
-    #     for c_name in (convenience_name, mime_type):
-    #         content_type, payload = compression.compress(TEST_DATA, c_name)
-    #         self.assertEqual(content_type, mime_type)
-    #         self.assertNotEqual(TEST_DATA, payload)
-    #         content_type, d = compression.decompress(payload, content_type)
-    #         self.assertEqual(content_type, mime_type)
-    #         self.assertEqual(d, TEST_DATA)
+        for c_name in (convenience_name, mime_type):
+            content_type, payload = compression.compress(TEST_DATA, c_name)
+            self.assertEqual(content_type, mime_type)
+            self.assertNotEqual(TEST_DATA, payload)
+            content_type, d = compression.decompress(payload, content_type)
+            self.assertEqual(content_type, mime_type)
+            self.assertEqual(d, TEST_DATA)
 
-    # def test_gzip_compression(self):
-    #     convenience_name = "gzip"
-    #     mime_type = compression.COMPRESSION_GZIP
+    def test_gzip_compression(self):
+        convenience_name = "gzip"
+        mime_type = compression.COMPRESSION_GZIP
 
-    #     for c_name in (convenience_name, mime_type):
-    #         content_type, payload = compression.compress(TEST_DATA, c_name)
-    #         self.assertEqual(content_type, mime_type)
-    #         self.assertNotEqual(TEST_DATA, payload)
-    #         content_type, d = compression.decompress(payload, content_type)
-    #         self.assertEqual(content_type, mime_type)
-    #         self.assertEqual(d, TEST_DATA)
+        for c_name in (convenience_name, mime_type):
+            content_type, payload = compression.compress(TEST_DATA, c_name)
+            self.assertEqual(content_type, mime_type)
+            self.assertNotEqual(TEST_DATA, payload)
+            content_type, d = compression.decompress(payload, content_type)
+            self.assertEqual(content_type, mime_type)
+            self.assertEqual(d, TEST_DATA)
 
-    # @unittest.skipUnless(compression.have_bz2, "requires bz2")
-    # def test_bzip2_compression(self):
-    #     convenience_name = "bzip2"
-    #     mime_type = compression.COMPRESSION_BZ2
+    @unittest.skipUnless(compression.have_bz2, "requires bz2")
+    def test_bzip2_compression(self):
+        convenience_name = "bzip2"
+        mime_type = compression.COMPRESSION_BZ2
 
-    #     for c_name in (convenience_name, mime_type):
-    #         content_type, payload = compression.compress(TEST_DATA, c_name)
-    #         self.assertEqual(content_type, mime_type)
-    #         self.assertNotEqual(TEST_DATA, payload)
-    #         content_type, d = compression.decompress(payload, content_type)
-    #         self.assertEqual(content_type, mime_type)
-    #         self.assertEqual(d, TEST_DATA)
+        for c_name in (convenience_name, mime_type):
+            content_type, payload = compression.compress(TEST_DATA, c_name)
+            self.assertEqual(content_type, mime_type)
+            self.assertNotEqual(TEST_DATA, payload)
+            content_type, d = compression.decompress(payload, content_type)
+            self.assertEqual(content_type, mime_type)
+            self.assertEqual(d, TEST_DATA)
 
     @unittest.skipUnless(compression.have_lzma, "requires lzma")
     def test_lzma_compression(self):

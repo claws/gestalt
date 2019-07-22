@@ -37,30 +37,14 @@ class NetstringStreamEndpointTestCase(asynctest.TestCase):
 
         # Check that starting a server that is already started does not
         # have any consequences
-        with self.assertLogs(
-            "gestalt.comms.stream.endpoint", level=logging.WARN
-        ) as log:
-            await server_ep.start()
-            expected_items = ("is already started",)
-            for expected_item in expected_items:
-                self.assertTrue(
-                    any(expected_item in log_item for log_item in log.output)
-                )
+        await server_ep.start()
 
         await server_ep.stop()
         self.assertTrue(server_on_stopped_mock.called)
 
         # Check that stopping a server that is already stopped does not
         # have any consequences
-        with self.assertLogs(
-            "gestalt.comms.stream.endpoint", level=logging.WARN
-        ) as log:
-            await server_ep.stop()
-            expected_items = ("is already stopped",)
-            for expected_item in expected_items:
-                self.assertTrue(
-                    any(expected_item in log_item for log_item in log.output)
-                )
+        await server_ep.stop()
 
     async def test_start_server_on_unavailable_port(self):
         """ check starting server on a used port raises an exception """
