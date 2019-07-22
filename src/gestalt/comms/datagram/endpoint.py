@@ -250,11 +250,13 @@ class DatagramEndpoint(object):
 
         except (ConnectionRefusedError, OSError) as exc:
             logger.error(
-                f"Connection refused (local_addr={local_addr},remote_addr={remote_addr}): {exc}")
+                f"Connection refused (local_addr={local_addr},remote_addr={remote_addr}): {exc}"
+            )
         except Exception as exc:
             logger.exception(
                 "Unexpected error binding UDP endpoint "
-                f"(local_addr={local_addr},remote_addr={remote_addr}): {exc}")
+                f"(local_addr={local_addr},remote_addr={remote_addr}): {exc}"
+            )
 
     def on_peer_available(self, prot, peer_id: bytes):
         """ Called from the protocol instance when its transport is available.
