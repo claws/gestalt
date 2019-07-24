@@ -23,7 +23,7 @@ if __name__ == "__main__":
         metavar="<port>",
         type=int,
         default=53123,
-        help="The port that the receiver will listening on",
+        help="The port that the receiver will be listening on",
     )
     ARGS.add_argument(
         "--log-level",

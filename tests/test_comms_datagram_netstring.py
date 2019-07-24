@@ -135,8 +135,9 @@ class NetstringDatagramEndpointTestCase(asynctest.TestCase):
 
         self.assertTrue(listener_on_message_mock.called)
         (args, kwargs) = listener_on_message_mock.call_args_list[0]
-        received_msg = args[0]
+        ep, received_msg = args
         sender_id = kwargs["peer_id"]
+        self.assertIsInstance(ep, NetstringDatagramEndpoint)
         self.assertEqual(received_msg, sent_msg)
 
         await client_ep.stop()

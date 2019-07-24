@@ -20,6 +20,9 @@ class MtiStreamEndpointTestCase(asynctest.TestCase):
 
         await server_ep.start()
         self.assertTrue(server_on_started_mock.called)
+        self.assertEqual(
+            server_on_started_mock.call_args, unittest.mock.call(server_ep)
+        )
 
         address, port = server_ep.bindings[0]
 
@@ -33,6 +36,9 @@ class MtiStreamEndpointTestCase(asynctest.TestCase):
         # Check that stopping a server that is already stopped does not
         # have any consequences
         await server_ep.stop()
+        self.assertEqual(
+            server_on_stopped_mock.call_args, unittest.mock.call(server_ep)
+        )
 
     async def test_start_server_on_unavailable_port(self):
         """ check starting server on a used port raises an exception """
@@ -146,6 +152,9 @@ class MtiStreamEndpointTestCase(asynctest.TestCase):
 
         await server_ep.start(addr="127.0.0.1", family=socket.AF_INET)
         self.assertTrue(server_on_started_mock.called)
+        self.assertEqual(
+            server_on_started_mock.call_args, unittest.mock.call(server_ep)
+        )
 
         address, port = server_ep.bindings[0]
 
@@ -167,8 +176,21 @@ class MtiStreamEndpointTestCase(asynctest.TestCase):
         await asyncio.sleep(0.3)
 
         self.assertTrue(client_on_started_mock.called)
+        self.assertEqual(
+            client_on_started_mock.call_args, unittest.mock.call(client_ep)
+        )
+
         self.assertTrue(client_on_peer_available_mock.called)
+        (args, kwargs) = client_on_peer_available_mock.call_args
+        cli, svr_peer_id = args
+        self.assertIsInstance(cli, MtiStreamClient)
+        self.assertIsInstance(svr_peer_id, bytes)
+
         self.assertTrue(server_on_peer_available_mock.called)
+        (args, kwargs) = server_on_peer_available_mock.call_args
+        svr, cli_peer_id = args
+        self.assertIsInstance(svr, MtiStreamServer)
+        self.assertIsInstance(cli_peer_id, bytes)
 
         self.assertEqual(len(client_ep.connections), 1)
 
@@ -179,27 +201,36 @@ class MtiStreamEndpointTestCase(asynctest.TestCase):
 
         self.assertTrue(server_on_message_mock.called)
         (args, kwargs) = server_on_message_mock.call_args_list[0]
-        received_msg = args[0]
+        svr, received_msg = args
         sender_id = kwargs["peer_id"]
+        self.assertEqual(svr, server_ep)
         self.assertEqual(received_msg, sent_msg)
 
         # Send a msg from server to client
         server_ep.send(received_msg, peer_id=sender_id)
         await asyncio.sleep(0.1)
         (args, kwargs) = client_on_message_mock.call_args_list[0]
-        received_msg = args[0]
+        cli, received_msg = args
         sender_id = kwargs["peer_id"]
+        self.assertEqual(cli, client_ep)
         self.assertEqual(received_msg, sent_msg)
 
         await client_ep.stop()
         await asyncio.sleep(0.1)
 
         self.assertTrue(client_on_stopped_mock.called)
+        self.assertEqual(
+            client_on_stopped_mock.call_args, unittest.mock.call(client_ep)
+        )
+
         self.assertTrue(client_on_peer_unavailable_mock.called)
         self.assertTrue(server_on_peer_unavailable_mock.called)
 
         await server_ep.stop()
         self.assertTrue(server_on_stopped_mock.called)
+        self.assertEqual(
+            server_on_stopped_mock.call_args, unittest.mock.call(server_ep)
+        )
 
     async def test_json_client_server_interaction_without_msg_id(self):
         """ check JSON client server interactions without message identifiers """
@@ -256,7 +287,7 @@ class MtiStreamEndpointTestCase(asynctest.TestCase):
 
         self.assertTrue(server_on_message_mock.called)
         (args, kwargs) = server_on_message_mock.call_args_list[0]
-        received_msg = args[0]
+        svr, received_msg = args
         sender_id = kwargs["peer_id"]
         self.assertEqual(received_msg, test_msg_in)
 
@@ -264,7 +295,7 @@ class MtiStreamEndpointTestCase(asynctest.TestCase):
         server_ep.send(received_msg, peer_id=sender_id)
         await asyncio.sleep(0.1)
         (args, kwargs) = client_on_message_mock.call_args_list[0]
-        received_msg = args[0]
+        cli, received_msg = args
         sender_id = kwargs["peer_id"]
         self.assertEqual(received_msg, test_msg_in)
 
@@ -334,7 +365,7 @@ class MtiStreamEndpointTestCase(asynctest.TestCase):
 
         self.assertTrue(server_on_message_mock.called)
         (args, kwargs) = server_on_message_mock.call_args_list[0]
-        received_msg = args[0]
+        svr, received_msg = args
         sender_id = kwargs["peer_id"]
         self.assertEqual(received_msg, test_msg_in)
 
@@ -342,7 +373,7 @@ class MtiStreamEndpointTestCase(asynctest.TestCase):
         server_ep.send(received_msg, peer_id=sender_id)
         await asyncio.sleep(0.1)
         (args, kwargs) = client_on_message_mock.call_args_list[0]
-        received_msg = args[0]
+        cli, received_msg = args
         sender_id = kwargs["peer_id"]
         self.assertEqual(received_msg, test_msg_in)
 
@@ -427,7 +458,7 @@ class MtiStreamEndpointTestCase(asynctest.TestCase):
 
         self.assertTrue(server_on_message_mock.called)
         (args, kwargs) = server_on_message_mock.call_args_list[0]
-        received_msg = args[0]
+        svr, received_msg = args
         received_msg_id = kwargs["type_identifier"]
         sender_id = kwargs["peer_id"]
         self.assertEqual(received_msg, test_msg_in)
@@ -437,7 +468,7 @@ class MtiStreamEndpointTestCase(asynctest.TestCase):
         server_ep.send(received_msg, type_identifier=received_msg_id, peer_id=sender_id)
         await asyncio.sleep(0.1)
         (args, kwargs) = client_on_message_mock.call_args_list[0]
-        received_msg = args[0]
+        cli, received_msg = args
         received_msg_id = kwargs["type_identifier"]
         sender_id = kwargs["peer_id"]
         self.assertEqual(received_msg, test_msg_in)

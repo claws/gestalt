@@ -164,6 +164,9 @@ class NetstringStreamEndpointTestCase(asynctest.TestCase):
 
         await server_ep.start(addr="127.0.0.1", family=socket.AF_INET)
         self.assertTrue(server_on_started_mock.called)
+        self.assertEqual(
+            server_on_started_mock.call_args, unittest.mock.call(server_ep)
+        )
 
         address, port = server_ep.bindings[0]
 
@@ -185,8 +188,21 @@ class NetstringStreamEndpointTestCase(asynctest.TestCase):
         await asyncio.sleep(0.3)
 
         self.assertTrue(client_on_started_mock.called)
+        self.assertEqual(
+            client_on_started_mock.call_args, unittest.mock.call(client_ep)
+        )
+
         self.assertTrue(client_on_peer_available_mock.called)
+        (args, kwargs) = client_on_peer_available_mock.call_args
+        cli, svr_peer_id = args
+        self.assertIsInstance(cli, NetstringStreamClient)
+        self.assertIsInstance(svr_peer_id, bytes)
+
         self.assertTrue(server_on_peer_available_mock.called)
+        (args, kwargs) = server_on_peer_available_mock.call_args
+        svr, cli_peer_id = args
+        self.assertIsInstance(svr, NetstringStreamServer)
+        self.assertIsInstance(cli_peer_id, bytes)
 
         # Send a msg from client to server
         sent_msg = b"Hello World"
@@ -195,16 +211,18 @@ class NetstringStreamEndpointTestCase(asynctest.TestCase):
 
         self.assertTrue(server_on_message_mock.called)
         (args, kwargs) = server_on_message_mock.call_args_list[0]
-        received_msg = args[0]
+        svr, received_msg = args
         sender_id = kwargs["peer_id"]
+        self.assertEqual(svr, server_ep)
         self.assertEqual(received_msg, sent_msg)
 
         # Send a msg from server to client
         server_ep.send(received_msg, peer_id=sender_id)
         await asyncio.sleep(0.1)
         (args, kwargs) = client_on_message_mock.call_args_list[0]
-        received_msg = args[0]
+        cli, received_msg = args
         sender_id = kwargs["peer_id"]
+        self.assertEqual(cli, client_ep)
         self.assertEqual(received_msg, sent_msg)
 
         await client_ep.stop()
@@ -216,6 +234,9 @@ class NetstringStreamEndpointTestCase(asynctest.TestCase):
 
         await server_ep.stop()
         self.assertTrue(server_on_stopped_mock.called)
+        self.assertEqual(
+            server_on_stopped_mock.call_args, unittest.mock.call(server_ep)
+        )
 
     @unittest.skipUnless(tls_utils.CERTS_EXIST, "cert files do not exist")
     async def test_client_server_ssl_without_client_access_to_root_ca(self):

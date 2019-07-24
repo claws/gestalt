@@ -1,5 +1,6 @@
 import asyncio
 import enum
+import inspect
 import logging
 import random
 import socket
@@ -11,9 +12,6 @@ from typing import Any, List, Sequence, Tuple
 
 logger = logging.getLogger(__name__)
 
-
-# The maximum time between reconnection attempts (3 minutes)
-BACKOFF_MAX = 180
 
 # The percentage of jitter to apply to the reconnection backoff time
 BACKOFF_JITTER = 0.05
@@ -54,6 +52,7 @@ class StreamEndpoint(object):
         on_peer_available=None,
         on_peer_unavailable=None,
         content_type: str = serialization.CONTENT_TYPE_DATA,
+        backoff_maximum: int = 10,
         loop=None,
         **kwargs,
     ):
@@ -84,6 +83,10 @@ class StreamEndpoint(object):
           convert messages to and from wire format. Default value is
           CONTENT_TYPE_DATA which is only suitable for sending bytes data that
           has been serialized externally from the endpoint.
+
+        :param backoff_maximum: The maximum interval between reconnect attempts
+          by an endpoint operating in client mode. Reconnect attempts backoff
+          exponentially up to this maximum value. Default value is 10 seconds.
         """
         self.loop = loop or asyncio.get_event_loop()
         self._on_message_handler = on_message
@@ -116,6 +119,7 @@ class StreamEndpoint(object):
         # Client specific attributes
         self._reconnect = False
         self._backoff = 0
+        self._backoff_maximum = backoff_maximum
         self._backoff_task = None
         self._connect_task = None
 
@@ -257,7 +261,7 @@ class StreamEndpoint(object):
         # Don't let poor user code break the library
         try:
             if self._on_stopped_handler:
-                self._on_stopped_handler()
+                self._on_stopped_handler(self)
         except Exception as exc:
             logger.exception("Error in on_stopped callback method")
 
@@ -383,7 +387,9 @@ class StreamEndpoint(object):
         max_backoff_value = self._backoff + jitter
         backoff_duration = random.uniform(min_backoff_value, max_backoff_value)
         if backoff_duration:
-            logger.info(f"Waiting {backoff_duration} seconds before connection attempt")
+            logger.info(
+                f"Waiting {backoff_duration:.1f} seconds before connection attempt"
+            )
             # The wait is implemented as a task and a reference to it is held
             # so it can be easily cancelled later.
             self._backoff_task = self.loop.create_task(asyncio.sleep(backoff_duration))
@@ -394,7 +400,9 @@ class StreamEndpoint(object):
                 return
 
         # Determine the next backoff time up to a maximum. E.g. 1.0, 2.5, 4.74...
-        self._backoff = min(BACKOFF_MAX, self._backoff + (self._backoff / 2) + 1)
+        self._backoff = min(
+            self._backoff_maximum, self._backoff + (self._backoff / 2) + 1
+        )
 
         _protocol = None
         try:
@@ -501,20 +509,25 @@ class StreamEndpoint(object):
 
         :param data: The message payload.
         """
-        try:
-            if self._on_message_handler:
+        if self._on_message_handler:
 
-                type_identifier = kwargs.get("type_identifier")
-                data = serialization.loads(
-                    data,
-                    content_type=self.content_type,
-                    content_encoding=self.content_encoding,
-                    type_identifier=type_identifier,
+            type_identifier = kwargs.get("type_identifier")
+            data = serialization.loads(
+                data,
+                content_type=self.content_type,
+                content_encoding=self.content_encoding,
+                type_identifier=type_identifier,
+            )
+
+            try:
+                maybe_awaitable = self._on_message_handler(
+                    self, data, peer_id=peer_id, **kwargs
                 )
-
-                self._on_message_handler(data, peer_id=peer_id, **kwargs)
-        except Exception as exc:
-            logger.exception("Error in on_message callback method")
+                if inspect.isawaitable(maybe_awaitable):
+                    self.loop.create_task(maybe_awaitable)
+            except Exception as exc:
+                logger.exception(f"Error in on_message callback method")
+                return
 
 
 class StreamServer(StreamEndpoint):

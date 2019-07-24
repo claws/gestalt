@@ -29,6 +29,15 @@ def run(
     This function helps avoid common boilerplate typically needed
     when running asyncio applications.
 
+    One common problem encountered with asyncio applications is when an
+    exception occurs in a task that was spun off. The problem only becomes
+    apparent when the event loop is stopped and an error is reported about
+    a task exception never being retrieved. The task that generated the
+    exception was likely important, perhaps a long running one too. To be
+    notified about these issues as soon as possible this function installs
+    a global exception handler that stops the loop when one of these
+    exceptions occur.
+
     :param func: An optional coroutine to run. The coroutine is
       typically the "main" coroutine from which all other work is
       spawned. The event loop will continue to run after the
@@ -49,27 +58,27 @@ def run(
 
     if not (inspect.isawaitable(func) or inspect.iscoroutinefunction(func)):
         raise Exception(
-            f"func must be a coroutine or a coroutine function "
+            "func must be a coroutine or a coroutine function "
             f"that takes no arguments, got {func}"
         )
 
     if not (inspect.isawaitable(finalize) or inspect.iscoroutinefunction(finalize)):
         raise Exception(
-            f"finalize must be a coroutine or a coroutine function "
+            "finalize must be a coroutine or a coroutine function "
             f"that takes no arguments, got {finalize}"
         )
 
     loop = loop or asyncio.get_event_loop()
 
-    def signal_handler(loop, signame):
-        logger.debug(f"Caught {signame}, stopping.")
+    def signal_handler(loop, sig):
+        logger.debug(f"Caught {sig.name}, stopping.")
         loop.call_soon(loop.stop)
 
-    loop.add_signal_handler(SIGINT, signal_handler, loop, "SIGINT")
-    loop.add_signal_handler(SIGTERM, signal_handler, loop, "SIGTERM")
+    loop.add_signal_handler(SIGINT, signal_handler, loop, SIGINT)
+    loop.add_signal_handler(SIGTERM, signal_handler, loop, SIGTERM)
 
     def exception_handler(loop, context):
-        logger.critical(f"Caught exception: {context}")
+        logger.exception(f"Caught exception: {context}")
         loop.call_soon(loop.stop)
 
     loop.set_exception_handler(exception_handler)
@@ -91,11 +100,12 @@ def run(
 
         # Shutdown any outstanding tasks that are left running
         pending_tasks = all_tasks(loop=loop)
-        logger.debug(f"Cancelling {len(pending_tasks)} pending tasks.")
-        for task in pending_tasks:
-            logger.debug(f"Cancelling task: {task}")
-            task.cancel()
-        loop.run_until_complete(asyncio.gather(*pending_tasks))
+        if pending_tasks:
+            logger.debug(f"Cancelling {len(pending_tasks)} pending tasks.")
+            for task in pending_tasks:
+                logger.debug(f"Cancelling task: {task}")
+                task.cancel()
+            loop.run_until_complete(asyncio.gather(*pending_tasks))
 
         logger.debug("Application shutdown sequence complete")
 

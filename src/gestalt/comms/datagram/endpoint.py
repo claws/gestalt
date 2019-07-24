@@ -181,7 +181,7 @@ class DatagramEndpoint(object):
         # Don't let poor user code break the library
         try:
             if self._on_stopped_handler:
-                self._on_stopped_handler()
+                self._on_stopped_handler(self)
         except Exception as exc:
             logger.exception("Error in on_stopped callback method")
 
@@ -313,6 +313,6 @@ class DatagramEndpoint(object):
                     type_identifier=type_identifier,
                 )
 
-                self._on_message_handler(data, peer_id=peer_id, **kwargs)
+                self._on_message_handler(self, data, peer_id=peer_id, **kwargs)
         except Exception as exc:
             logger.exception("Error in on_message callback method")
