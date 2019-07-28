@@ -72,7 +72,11 @@ where the available extras are:
   - ``msgpack`` will install support for serializing Msgpack structures.
   - ``yaml`` will install support for serializing YAML structures.
   - ``avro`` will install support for serializing Apache Avro structures.
-  - ``snappy`` will install Snappy compression support.
+  - ``snappy`` will install Snappy compression support. The Python snappy package
+    is simply a binding to a system library. Therefore you must install that first
+    before the Python binding will install successfully. For example, on Debian
+    systems you will want ``sudo apt-get install libsnappy-dev``
+
   - ``brotli`` will install Brotli compression support.
   - ``amq`` will install the AMQP extras (asyncio bindings for RabbitMQ)
   - ``develop`` will install the extras needed to development Gestalt.
