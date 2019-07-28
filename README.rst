@@ -68,8 +68,7 @@ shown in the example below which installs all of the available extras:
 
 where the available extras are:
 
-  - ``protobuf`` will install support for serializing Google Protocol Buffers
-     structures.
+  - ``protobuf`` will install support for serializing Google Protocol Buffers structures.
   - ``msgpack`` will install support for serializing Msgpack structures.
   - ``yaml`` will install support for serializing YAML structures.
   - ``avro`` will install support for serializing Apache Avro structures.

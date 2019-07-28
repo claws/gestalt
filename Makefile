@@ -57,9 +57,9 @@ style:
 	@black src/gestalt tests setup.py examples --exclude .*_pb2\.py
 
 
-# help: style.check                    - perform code format compliance check
-.PHONY: style.check
-style.check:
+# help: style-check                    - perform code format compliance check
+.PHONY: style-check
+style-check:
 	@# Avoid formatting automatically generated code by excluding it
 	@black src/gestalt tests setup.py examples --check --exclude .*_pb2\.py
 

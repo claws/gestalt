@@ -43,9 +43,9 @@ def run(
       loop will continue to run after the supplied coroutine completes.
       The event loop will still run if no coroutine is supplied.
 
-    param finalize: An optional coroutine to run when shutting down.
-      Use this to perform any graceful cleanup activities such as finalising
-    log files, disconnecting from services such as databases, etc.
+    :param finalize: An optional coroutine to run when shutting down. Use this
+      to perform any graceful cleanup activities such as finalising log files,
+      disconnecting from services such as databases, etc.
 
     :param loop: An optional event loop to run. If not supplied the default
       event loop is used (i.e., whatever ``asyncio.get_event_loop()`` returns.
