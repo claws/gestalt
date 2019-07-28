@@ -94,6 +94,7 @@ serve-docs:
 # help: dist                           - create a wheel distribution package
 .PHONY: dist
 dist:
+	@rm -rf dist
 	@python setup.py bdist_wheel
 
 
