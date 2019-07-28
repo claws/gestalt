@@ -80,9 +80,8 @@ def encode_payload(
     # being decoded (referred to as a symbol). The symbol id is added to
     # the headers so that it can be used on the receiving side.
     if content_type == CONTENT_TYPE_PROTOBUF:
-        if type_identifier is None:
-            raise Exception("No protobuf id specified!")
-        headers["x-type-id"] = type_identifier
+        serializer = registry.get_serializer(CONTENT_TYPE_PROTOBUF)
+        headers["x-type-id"] = serializer.registry.get_id_for_object(data)
 
     # Avro decoders require awareness of the schema that describes the object.
     # This information is added to the headers so that it can be used on the

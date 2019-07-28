@@ -104,34 +104,41 @@ class SerializerRegistry(object):
         self.type_to_name[content_type] = name
         self.name_to_type[name] = content_type
 
-    def _set_default_serializer(self, name: str):
+    def _set_default_serializer(self, name_or_type: str):
         """ Set the default serialization method used by this library.
 
-        :param name: The name of a registered serialization method (e.g. json)
+        :param name_or_type: a string specifying the serialization strategy.
+          The string may be the alias name (e.g. json) or the mime-type
+          (e.g. application/json).
 
         Raises:
             Exception: If the serialization method requested is not available.
         """
-        if name not in self._serializers:
-            raise Exception(f"Invalid serializer {name}")
-
-        self._default_codec = name
+        self._default_codec = self._name_or_type_to_name(name_or_type)
 
     def get_supported_serializers(self):
         """ Return a dict of the available serializers (codecs) """
         return self._serializers
 
-    def get_codec(self, name):
-        try:
-            return self._serializers[name]
-        except KeyError:
-            raise Exception("Serializer '{name}' does not exist") from None
+    def get_codec(self, name_or_type):
+        """ Return a codec tuple matching the supplied name.
 
-    def get_serializer(self, name: str):
-        try:
-            return self._serializers[name].serializer
-        except KeyError:
-            raise Exception("Serializer '{name}' does not exist") from None
+        :param name_or_type: a string specifying the serialization strategy.
+          The string may be the alias name (e.g. json) or the mime-type
+          (e.g. application/json).
+        """
+        name = self._name_or_type_to_name(name_or_type)
+        return self._serializers[name]
+
+    def get_serializer(self, name_or_type: str):
+        """ Return a specific serializer from the registry.
+
+        :param name_or_type: a string specifying the serialization strategy.
+          The string may be the alias name (e.g. json) or the mime-type
+          (e.g. application/json).
+        """
+        name = self._name_or_type_to_name(name_or_type)
+        return self._serializers[name].serializer
 
     def dumps(self, data: Any, serialization: str = None, **kwargs):
         """ Encode data.
@@ -234,6 +241,20 @@ class SerializerRegistry(object):
             return serializer.decode(data, **kwargs)
 
         return data
+
+    def _name_or_type_to_name(self, x: str) -> str:
+        """ Return a serializer alias string.
+
+        :param x: a string specifying the serialization strategy.
+          The string may be the alias name (e.g. json) or the mime-type
+          (e.g. application/json).
+        """
+        if x in self.name_to_type:
+            return x
+        elif x in self.type_to_name:
+            return self.type_to_name[x]
+        else:
+            raise Exception("Invalid serializer '{name}'")
 
 
 def register_none(registry: SerializerRegistry):
@@ -476,6 +497,7 @@ def register_protobuf(registry: SerializerRegistry, object_registry=None) -> Non
             def __init__(self):
                 self.symDb = symbol_database.Default()
                 self.id2sym = {}
+                self.sym2id = {}
                 self._id = 0
 
             def register_message(
@@ -493,12 +515,16 @@ def register_protobuf(registry: SerializerRegistry, object_registry=None) -> Non
                     self._id += 1
                     type_identifier = self._id
                 self.id2sym[type_identifier] = symbol_name
+                self.sym2id[symbol_name] = type_identifier
                 return type_identifier
 
             def get_object_by_id(self, type_identifier: int) -> str:
                 symbol_name = self.id2sym.get(type_identifier)
                 messageClass = self.symDb.GetSymbol(symbol_name)
                 return messageClass()
+
+            def get_id_for_object(self, obj: Message) -> int:
+                return self.sym2id[obj.DESCRIPTOR.name]
 
         class ProtobufSerializer(ISerializer):
             """ Google Protocol Buffers serialization.

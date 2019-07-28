@@ -7,9 +7,10 @@ from gestalt.amq.consumer import Consumer
 from gestalt.amq.producer import Producer
 from gestalt.compression import COMPRESSION_GZIP, COMPRESSION_BZ2
 from gestalt.serialization import (
-    CONTENT_TYPE_TEXT,
+    CONTENT_TYPE_AVRO,
     CONTENT_TYPE_JSON,
     CONTENT_TYPE_PROTOBUF,
+    CONTENT_TYPE_TEXT,
     registry,
 )
 
@@ -156,7 +157,7 @@ class RabbitmqTopicPubSubTestCase(asynctest.TestCase):
         )
 
         # Register messages that require using the x-type-id message attribute
-        serializer = serialization.registry.get_serializer("protobuf")
+        serializer = serialization.registry.get_serializer(CONTENT_TYPE_PROTOBUF)
         type_identifier = serializer.registry.register_message(Position)
 
         try:
@@ -166,11 +167,7 @@ class RabbitmqTopicPubSubTestCase(asynctest.TestCase):
             await asyncio.sleep(0.1)
 
             protobuf_msg = Position(**POSITION_DICT)
-            await p.publish_message(
-                protobuf_msg,
-                content_type=CONTENT_TYPE_PROTOBUF,
-                type_identifier=type_identifier,
-            )
+            await p.publish_message(protobuf_msg, content_type=CONTENT_TYPE_PROTOBUF)
 
             await asyncio.sleep(0.1)
 
@@ -179,6 +176,71 @@ class RabbitmqTopicPubSubTestCase(asynctest.TestCase):
             payload, message = args
             self.assertEqual(payload, protobuf_msg)
             self.assertEqual(message.properties.content_type, CONTENT_TYPE_PROTOBUF)
+            self.assertEqual(message.headers.get("compression"), None)
+
+        finally:
+            await c.stop()
+            await p.stop()
+
+    @unittest.skipUnless(serialization.have_avro, "requires avro")
+    async def test_topic_pubsub_avro(self):
+        """ check Apache Avro messages can be published and received """
+
+        amqp_url = AMQP_URL
+        exchange_name = "test"
+
+        p = Producer(
+            amqp_url=amqp_url,
+            exchange_name=exchange_name,
+            routing_key="position.update",
+        )
+
+        on_message_mock = unittest.mock.Mock()
+        c = Consumer(
+            amqp_url=amqp_url,
+            exchange_name=exchange_name,
+            routing_key="position.#",
+            on_message=on_message_mock,
+        )
+
+        # Add schema to serializer schema registry
+        message_schema = {
+            "namespace": "unittest.test_amq_topic_pubsub",
+            "type": "record",
+            "name": "Position",
+            "fields": [
+                {"name": "latitude", "type": ["float", "null"]},
+                {"name": "longitude", "type": ["float", "null"]},
+                {"name": "altitude", "type": ["float", "null"]},
+            ],
+        }
+
+        # Register messages that require using the x-type-id message attribute
+        serializer = serialization.registry.get_serializer(CONTENT_TYPE_AVRO)
+        type_identifier = serializer.registry.register_message(message_schema)
+
+        try:
+            await p.start()
+            await c.start()
+
+            await asyncio.sleep(0.1)
+
+            avro_msg = POSITION_DICT
+
+            # must provide explicit type-identifier with Avro.
+            await p.publish_message(
+                avro_msg,
+                content_type=CONTENT_TYPE_AVRO,
+                type_identifier=type_identifier,
+            )
+
+            await asyncio.sleep(0.1)
+
+            self.assertTrue(on_message_mock.called)
+            args, kwargs = on_message_mock.call_args_list[0]
+            payload, message = args
+            self.assertEqual(payload, avro_msg)
+            self.assertEqual(message.properties.content_type, CONTENT_TYPE_AVRO)
             self.assertEqual(message.headers.get("compression"), None)
 
         finally:

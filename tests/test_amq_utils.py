@@ -113,17 +113,18 @@ class RabbitmqUtilitiesTestCase(unittest.TestCase):
             latitude=130.0, longitude=-30.0, altitude=50.0, status=Position.SIMULATED
         )
 
-        serializer = serialization.registry.get_serializer("protobuf")
+        serializer = serialization.registry.get_serializer(
+            serialization.CONTENT_TYPE_PROTOBUF
+        )
         type_identifier = serializer.registry.register_message(Position)
 
-        # Protobuf is already a compact binary format so there is not to be
-        # gained by compressing it further.
+        # Protobuf is already a compact binary format so there is nothing
+        # to be gained by compressing it further.
         headers = {}
         payload, content_type, content_encoding = utils.encode_payload(
             PROTOBUF_DATA,
             content_type=serialization.CONTENT_TYPE_PROTOBUF,
             headers=headers,
-            type_identifier=type_identifier,
         )
         self.assertNotIn("compression", headers)
         self.assertIn("x-type-id", headers)
@@ -141,7 +142,7 @@ class RabbitmqUtilitiesTestCase(unittest.TestCase):
 
         # Add schema to serializer schema registry
         message_schema = {
-            "namespace": "mymq.unittest.utils",
+            "namespace": "unittest.test_amq_utils",
             "type": "record",
             "name": "Position",
             "fields": [
@@ -151,7 +152,9 @@ class RabbitmqUtilitiesTestCase(unittest.TestCase):
             ],
         }
 
-        serializer = serialization.registry.get_serializer("avro")
+        serializer = serialization.registry.get_serializer(
+            serialization.CONTENT_TYPE_AVRO
+        )
         type_identifier = serializer.registry.register_message(message_schema)
 
         AVRO_DATA = dict(latitude=130.0, longitude=-30.0, altitude=50.0)

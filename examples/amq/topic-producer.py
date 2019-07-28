@@ -8,6 +8,7 @@ from gestalt.serialization import (
     CONTENT_TYPE_JSON,
     CONTENT_TYPE_PROTOBUF,
 )
+from gestalt import serialization
 from gestalt.amq.producer import Producer
 from gestalt.runner import run
 from position_pb2 import Position
@@ -101,6 +102,18 @@ if __name__ == "__main__":
         exchange_name=args.exchange_name,
         routing_key=args.routing_key,
     )
+
+    # When you parse a serialized protocol buffer message you have to know what
+    # kind of type you're expecting. However, a serialized protocol buffer
+    # message does not provide this identifying information. When using Protobuf
+    # serialization the type must be registered with the serializer so that
+    # an identifier can be associated with the type. The type identifier is
+    # pass in a message header field. This must be done on sender and consumer
+    # sides in the same order.
+    #
+    # Register messages that require using the x-type-id message attribute
+    serializer = serialization.registry.get_serializer(CONTENT_TYPE_PROTOBUF)
+    type_identifier = serializer.registry.register_message(Position)
 
     async def start_producing(p):
         await p.start()

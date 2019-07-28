@@ -2,9 +2,10 @@ import argparse
 import asyncio
 import logging
 import aio_pika
+from gestalt import serialization
 from gestalt.amq.consumer import Consumer
 from gestalt.runner import run
-import position_pb2  # loads protobuf structure into symbol database
+from position_pb2 import Position
 from typing import Any
 
 
@@ -74,5 +75,19 @@ if __name__ == "__main__":
         routing_key=args.routing_key,
         on_message=on_message_callback,
     )
+
+    # When you parse a serialized protocol buffer message you have to know what
+    # kind of type you're expecting. However, a serialized protocol buffer
+    # message does not provide this identifying information. When using Protobuf
+    # serialization the type must be registered with the serializer so that
+    # an identifier can be associated with the type. The type identifier is
+    # pass in a message header field. This must be done on sender and consumer
+    # sides in the same order.
+    #
+    # Register messages that require using the x-type-id message attribute
+    serializer = serialization.registry.get_serializer(
+        serialization.CONTENT_TYPE_PROTOBUF
+    )
+    type_identifier = serializer.registry.register_message(Position)
 
     run(c.start, finalize=c.stop)
