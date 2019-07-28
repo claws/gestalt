@@ -5,7 +5,7 @@ import socket
 import unittest.mock
 import typing
 from gestalt import serialization
-from gestalt.comms.stream.mti import MtiStreamClient, MtiStreamServer
+from gestalt.stream.mti import MtiStreamClient, MtiStreamServer
 
 
 class MtiStreamEndpointTestCase(asynctest.TestCase):
@@ -56,9 +56,7 @@ class MtiStreamEndpointTestCase(asynctest.TestCase):
                 on_started=server_on_started_mock, on_stopped=server_on_stopped_mock
             )
 
-            with self.assertLogs(
-                "gestalt.comms.stream.endpoint", level=logging.ERROR
-            ) as log:
+            with self.assertLogs("gestalt.stream.endpoint", level=logging.ERROR) as log:
                 with self.assertRaises(Exception):
                     await server_ep.start(addr=host, port=occupied_port)
 
@@ -90,7 +88,7 @@ class MtiStreamEndpointTestCase(asynctest.TestCase):
         for addr_value, subtest_description in sub_tests:
             with self.subTest(subtest_description):
                 with self.assertLogs(
-                    "gestalt.comms.stream.endpoint", level=logging.INFO
+                    "gestalt.stream.endpoint", level=logging.INFO
                 ) as log:
                     await client_ep.start(addr=addr_value, port=5555)
                     # wait briefly for an expected reconnect attempt
@@ -111,7 +109,7 @@ class MtiStreamEndpointTestCase(asynctest.TestCase):
         for addr_value, subtest_description in sub_tests:
             with self.subTest(subtest_description):
                 with self.assertLogs(
-                    "gestalt.comms.stream.endpoint", level=logging.DEBUG
+                    "gestalt.stream.endpoint", level=logging.DEBUG
                 ) as log:
                     await client_ep.start(addr="127.0.0.1", port=5555, reconnect=False)
                     # wait briefly for a possible reconnect attempt

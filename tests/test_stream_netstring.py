@@ -6,7 +6,7 @@ import socket
 import ssl
 import sys
 import unittest.mock
-from gestalt.comms.stream.netstring import NetstringStreamClient, NetstringStreamServer
+from gestalt.stream.netstring import NetstringStreamClient, NetstringStreamServer
 import tls_utils
 
 py_ver = sys.version_info
@@ -69,9 +69,7 @@ class NetstringStreamEndpointTestCase(asynctest.TestCase):
                 on_peer_unavailable=server_on_peer_unavailable_mock,
             )
 
-            with self.assertLogs(
-                "gestalt.comms.stream.endpoint", level=logging.ERROR
-            ) as log:
+            with self.assertLogs("gestalt.stream.endpoint", level=logging.ERROR) as log:
                 with self.assertRaises(Exception):
                     await server_ep.start(addr=host, port=occupied_port)
 
@@ -102,7 +100,7 @@ class NetstringStreamEndpointTestCase(asynctest.TestCase):
         for addr_value, subtest_description in sub_tests:
             with self.subTest(subtest_description):
                 with self.assertLogs(
-                    "gestalt.comms.stream.endpoint", level=logging.INFO
+                    "gestalt.stream.endpoint", level=logging.INFO
                 ) as log:
                     await client_ep.start(addr=addr_value, port=5555)
                     # wait briefly for a reconnect attempt
@@ -123,7 +121,7 @@ class NetstringStreamEndpointTestCase(asynctest.TestCase):
         for addr_value, subtest_description in sub_tests:
             with self.subTest(subtest_description):
                 with self.assertLogs(
-                    "gestalt.comms.stream.endpoint", level=logging.DEBUG
+                    "gestalt.stream.endpoint", level=logging.DEBUG
                 ) as log:
                     await client_ep.start(addr="127.0.0.1", port=5555, reconnect=False)
                     # wait briefly for a possible reconnect attempt
@@ -280,7 +278,7 @@ class NetstringStreamEndpointTestCase(asynctest.TestCase):
         try:
             if PY36:
                 with self.assertLogs(
-                    "gestalt.comms.stream.endpoint", level=logging.ERROR
+                    "gestalt.stream.endpoint", level=logging.ERROR
                 ) as log:
                     await client_ep.start(
                         addr=address,
@@ -301,7 +299,7 @@ class NetstringStreamEndpointTestCase(asynctest.TestCase):
                 # "certificate verify failed: self signed certificate in certificate chain"
                 with self.assertLogs(level=logging.ERROR) as root_log:
                     with self.assertLogs(
-                        "gestalt.comms.stream.endpoint", level=logging.ERROR
+                        "gestalt.stream.endpoint", level=logging.ERROR
                     ) as log:
                         await client_ep.start(
                             addr=address,
@@ -383,7 +381,7 @@ class NetstringStreamEndpointTestCase(asynctest.TestCase):
         try:
             if PY36:
                 with self.assertLogs(
-                    "gestalt.comms.stream.endpoint", level=logging.ERROR
+                    "gestalt.stream.endpoint", level=logging.ERROR
                 ) as log:
                     await client_ep.start(
                         addr=address,
@@ -403,7 +401,7 @@ class NetstringStreamEndpointTestCase(asynctest.TestCase):
             else:
                 with self.assertLogs(level=logging.ERROR) as root_log:
                     with self.assertLogs(
-                        "gestalt.comms.stream.endpoint", level=logging.ERROR
+                        "gestalt.stream.endpoint", level=logging.ERROR
                     ) as log:
                         await client_ep.start(
                             addr=address,
@@ -484,7 +482,7 @@ class NetstringStreamEndpointTestCase(asynctest.TestCase):
         try:
             if PY36:
                 with self.assertLogs(
-                    "gestalt.comms.stream.endpoint", level=logging.ERROR
+                    "gestalt.stream.endpoint", level=logging.ERROR
                 ) as log:
                     await client_ep.start(
                         addr=address, port=port, family=socket.AF_INET, ssl=client_ctx
@@ -500,7 +498,7 @@ class NetstringStreamEndpointTestCase(asynctest.TestCase):
 
                 with self.assertLogs(level=logging.ERROR) as root_log:
                     with self.assertLogs(
-                        "gestalt.comms.stream.endpoint", level=logging.ERROR
+                        "gestalt.stream.endpoint", level=logging.ERROR
                     ) as log:
                         await client_ep.start(
                             addr=address,

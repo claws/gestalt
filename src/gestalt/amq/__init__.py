@@ -1,6 +1,8 @@
+""" Optional AMQP functionality """
+from . import utils
+
 try:
     import aio_pika
-    from . import utils
     from . import consumer
     from . import producer
 except ImportError:

@@ -17,8 +17,8 @@ Messages with a payload size of zero are invalid.
 
 """
 
-from gestalt.comms.stream.endpoint import StreamClient, StreamServer
-from gestalt.comms.stream.protocols.netstring import NetstringStreamProtocol
+from gestalt.stream.endpoint import StreamClient, StreamServer
+from gestalt.stream.protocols.netstring import NetstringStreamProtocol
 
 
 class NetstringStreamClient(StreamClient):

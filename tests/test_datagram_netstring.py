@@ -4,7 +4,7 @@ import logging
 import socket
 import unittest.mock
 from gestalt import serialization
-from gestalt.comms.datagram.netstring import NetstringDatagramEndpoint
+from gestalt.datagram.netstring import NetstringDatagramEndpoint
 
 
 class NetstringDatagramEndpointTestCase(asynctest.TestCase):
@@ -23,7 +23,7 @@ class NetstringDatagramEndpointTestCase(asynctest.TestCase):
             on_peer_unavailable=listener_on_peer_unavailable_mock,
         )
 
-        # Expect an exception if niether local_addr or remote addr are
+        # Expect an exception if local_addr or remote addr are not
         # specified
         with self.assertRaises(Exception) as cm:
             await listener_ep.start()
@@ -70,7 +70,7 @@ class NetstringDatagramEndpointTestCase(asynctest.TestCase):
             )
 
             with self.assertLogs(
-                "gestalt.comms.datagram.endpoint", level=logging.ERROR
+                "gestalt.datagram.endpoint", level=logging.ERROR
             ) as log:
                 with self.assertRaises(Exception):
                     await listener_ep.start(local_addr=(host, occupied_port))

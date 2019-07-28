@@ -8,7 +8,7 @@ from gestalt.serialization import (
     CONTENT_TYPE_JSON,
     CONTENT_TYPE_PROTOBUF,
 )
-from gestalt.comms.amq.producer import Producer
+from gestalt.amq.producer import Producer
 from gestalt.runner import run
 from position_pb2 import Position
 

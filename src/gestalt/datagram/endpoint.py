@@ -3,7 +3,7 @@ import logging
 import socket
 
 from gestalt import serialization
-from gestalt.comms.datagram.protocols.base import BaseDatagramProtocol
+from gestalt.datagram.protocols.base import BaseDatagramProtocol
 from typing import Any, List, Sequence, Tuple
 
 logger = logging.getLogger(__name__)

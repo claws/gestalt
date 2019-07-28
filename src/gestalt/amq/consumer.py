@@ -8,7 +8,7 @@ import aio_pika
 import inspect
 import time
 
-from gestalt.comms.amq import utils
+from gestalt.amq import utils
 from gestalt.serialization import loads
 
 from asyncio import AbstractEventLoop
@@ -32,7 +32,7 @@ class Consumer(object):
 
     def __init__(
         self,
-        amqp_url: str,
+        amqp_url: str = "",
         exchange_name: str = "",
         exchange_type: aio_pika.ExchangeType = aio_pika.ExchangeType.TOPIC,
         routing_key: str = "",

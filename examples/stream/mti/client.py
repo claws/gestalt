@@ -1,8 +1,9 @@
 import asyncio
 import datetime
 import logging
-from gestalt.serialization import CONTENT_TYPE_JSON
-from gestalt.stream.netstring import NetstringStreamServer
+from gestalt.serialization import CONTENT_TYPE_PROTOBUF
+from gestalt.stream.mti import MtiStreamClient
+from position_pb2 import Position
 
 
 if __name__ == "__main__":
@@ -10,13 +11,13 @@ if __name__ == "__main__":
     import argparse
     from gestalt.runner import run
 
-    ARGS = argparse.ArgumentParser(description="Stream Netstring Server Example")
+    ARGS = argparse.ArgumentParser(description="Stream MTI Client Example")
     ARGS.add_argument(
         "--host",
         metavar="<host>",
         type=str,
         default="localhost",
-        help="The host the server will running on",
+        help="The host the server will run on",
     )
     ARGS.add_argument(
         "--port",
@@ -45,20 +46,27 @@ if __name__ == "__main__":
         level=numeric_level,
     )
 
-    def on_started(server):
-        print("Server has started")
+    def on_started(client):
+        print("Client has started")
 
-    def on_stopped(server):
-        print("Server has stopped")
+    def on_stopped(client):
+        print("Client has stopped")
 
-    def on_peer_available(server, peer_id):
-        print(f"Server peer {peer_id} connected")
+    def on_peer_available(client, peer_id):
+        print(f"Client {peer_id} connected")
 
-    def on_peer_unavailable(server, peer_id):
-        print(f"Server peer {peer_id} connected")
+        # Upon connection, send a message to the server
+        protobuf_data = Position(
+            latitude=130.0, longitude=-30.0, altitude=50.0, status=Position.SIMULATED
+        )
+        print(f"sending a message: {protobuf_data}")
+        client.send(protobuf_data, peer_id=peer_id, type_identifier=type_identifier)
 
-    async def on_message(server, data, peer_id, **kwargs) -> None:
-        print(f"Server received msg from {peer_id}: {data}")
+    def on_peer_unavailable(client, peer_id):
+        print(f"Client {peer_id} connected")
+
+    async def on_message(client, data, peer_id, **kwargs) -> None:
+        print(f"Client received msg from {peer_id}: {data}")
 
         # Wait briefly before sending a reply to the reply!
         await asyncio.sleep(1)
@@ -67,15 +75,19 @@ if __name__ == "__main__":
         # Send a reply to the specific peer that sent the msg
         now = datetime.datetime.now(tz=datetime.timezone.utc)
         msg = dict(timestamp=now.isoformat(), counter=msg_count)
-        server.send(msg, peer_id=peer_id)
+        client.send(msg, peer_id=peer_id)
 
-    svr = NetstringStreamServer(
+    svr = MtiStreamClient(
         on_message=on_message,
         on_started=on_started,
         on_stopped=on_stopped,
         on_peer_available=on_peer_available,
         on_peer_unavailable=on_peer_unavailable,
-        content_type=CONTENT_TYPE_JSON,
+        content_type=CONTENT_TYPE_PROTOBUF,
     )
+
+    # Associate a message object with a unique message type identifier.
+    type_identifier = 1
+    svr.register_message(type_identifier, Position)
 
     run(svr.start(args.host, args.port), finalize=svr.stop)

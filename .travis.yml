@@ -1,4 +1,9 @@
 dist: xenial   # required for Python >= 3.7
+addons:
+  apt:
+    packages:
+    - rabbitmq-server
+
 language: python
 python:
   - 3.6
@@ -13,9 +18,9 @@ before_install:
 install:
   - make certs
   - make generate
-  - make style.check
   - pip install .[amq,protobuf,msgpack,avro,brotli,yaml]
-  - make dist
 script:
+  - make style.check
   - make test
   - make docs
+  - make dist

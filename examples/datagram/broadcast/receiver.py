@@ -4,7 +4,7 @@ import logging
 import socket
 from gestalt.runner import run
 from gestalt.serialization import CONTENT_TYPE_JSON
-from gestalt.comms.datagram.endpoint import DatagramEndpoint
+from gestalt.datagram.endpoint import DatagramEndpoint
 
 
 if __name__ == "__main__":

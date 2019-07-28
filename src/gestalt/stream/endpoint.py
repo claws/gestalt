@@ -7,7 +7,7 @@ import socket
 
 from ssl import SSLContext
 from gestalt import serialization
-from gestalt.comms.stream.protocols.base import BaseStreamProtocol
+from gestalt.stream.protocols.base import BaseStreamProtocol
 from typing import Any, List, Sequence, Tuple
 
 logger = logging.getLogger(__name__)

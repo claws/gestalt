@@ -2,7 +2,7 @@ import json
 import unittest
 from gestalt import compression
 from gestalt import serialization
-from gestalt.comms.amq import utils
+from gestalt.amq import utils
 
 
 class RabbitmqUtilitiesTestCase(unittest.TestCase):

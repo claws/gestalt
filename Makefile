@@ -112,7 +112,9 @@ dist-upload:
 # help: generate                       - generate protobuf code stubs if needed
 generate: tests/position_pb2.py \
 	examples/amq/position_pb2.py \
-	examples/datagram/mti/position_pb2.py
+	examples/datagram/mti/position_pb2.py \
+	examples/stream/mti/position_pb2.py
+
 
 # help: regenerate                     - force regenerate protobuf code stubs
 regenerate:
@@ -122,6 +124,8 @@ regenerate:
 	@rm -f examples/amq/position_pb2.py
 	@echo "deleting examples/datagram/mti/position_pb2.py"
 	@rm -f examples/datagram/mti/position_pb2.py
+	@echo "deleting examples/stream/mti/position_pb2.py"
+	@rm -f examples/stream/mti/position_pb2.py
 	@make generate
 
 # help: certs                          - generate certificates for unit tests
@@ -140,6 +144,9 @@ examples/amq/position_pb2.py:
 
 examples/datagram/mti/position_pb2.py:
 	@python -m grpc_tools.protoc -I proto --python_out=examples/datagram/mti proto/position.proto
+
+examples/stream/mti/position_pb2.py:
+	@python -m grpc_tools.protoc -I proto --python_out=examples/stream/mti proto/position.proto
 
 
 tests/certs/ca.key:

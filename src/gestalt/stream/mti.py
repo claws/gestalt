@@ -34,8 +34,8 @@ import logging
 import os
 
 from gestalt import serialization
-from gestalt.comms.stream.endpoint import StreamClient, StreamServer
-from gestalt.comms.stream.protocols.mti import MtiStreamProtocol
+from gestalt.stream.endpoint import StreamClient, StreamServer
+from gestalt.stream.protocols.mti import MtiStreamProtocol
 
 
 logger = logging.getLogger(__name__)

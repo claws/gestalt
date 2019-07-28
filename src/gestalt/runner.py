@@ -23,35 +23,32 @@ def run(
     finalize: Coroutine = None,
     loop: AbstractEventLoop = None,
 ):
-    """ Start an event loop and run the optional coroutine then
-    shutdown the loop when a signal is received.
+    """ Start an event loop and run an optional coroutine.
 
-    This function helps avoid common boilerplate typically needed
-    when running asyncio applications.
+    Shutdown the loop when a signal is received or the supplied function
+    explicitly requests the loop to stop.
 
-    One common problem encountered with asyncio applications is when an
-    exception occurs in a task that was spun off. The problem only becomes
-    apparent when the event loop is stopped and an error is reported about
-    a task exception never being retrieved. The task that generated the
-    exception was likely important, perhaps a long running one too. To be
-    notified about these issues as soon as possible this function installs
-    a global exception handler that stops the loop when one of these
-    exceptions occur.
+    This function provides some of the common boilerplate typically needed
+    when running asyncio applications. It registers signal handlers that
+    listen for SIGINT and SIGTERM that will stop the event loop and trigger
+    application shutdown actions. It registers a global exception handler
+    that will stop the loop and trigger application shutdown actions. This
+    helps catch a common problem that occurs in asyncio applications in
+    which an exception occurs in a task that was spun off but is not
+    reported until the event loop is stopped. This approach allows users
+    to be notified about these issues as soon as possible.
 
-    :param func: An optional coroutine to run. The coroutine is
-      typically the "main" coroutine from which all other work is
-      spawned. The event loop will continue to run after the
-      supplied coroutine completes. The event loop will still run
-      if no coroutine is supplied.
+    :param func: An optional coroutine to run. The coroutine is typically
+      the "main" coroutine from which all other work is spawned. The event
+      loop will continue to run after the supplied coroutine completes.
+      The event loop will still run if no coroutine is supplied.
 
     param finalize: An optional coroutine to run when shutting down.
-      This would typically be used to perform any graceful cleanup
-      activities such as finalising log files, disconnecting from
-      services such as databases, etc.
+      Use this to perform any graceful cleanup activities such as finalising
+    log files, disconnecting from services such as databases, etc.
 
-    :param loop: An optional event loop to run. If not supplied
-      the default event loop is used (i.e., whatever
-      ``asyncio.get_event_loop()`` returns.
+    :param loop: An optional event loop to run. If not supplied the default
+      event loop is used (i.e., whatever ``asyncio.get_event_loop()`` returns.
 
     """
     logger.debug("Application runner starting")
@@ -87,7 +84,6 @@ def run(
         if inspect.iscoroutinefunction(func):
             func = func()
         loop.create_task(func)
-
         loop.run_forever()
     finally:
         logger.debug("Application shutdown sequence starting")

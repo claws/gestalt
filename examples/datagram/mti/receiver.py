@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from gestalt.serialization import CONTENT_TYPE_PROTOBUF
-from gestalt.comms.datagram.mti import MtiDatagramEndpoint
+from gestalt.datagram.mti import MtiDatagramEndpoint
 from position_pb2 import Position
 
 

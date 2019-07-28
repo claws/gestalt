@@ -2,7 +2,7 @@ import argparse
 import asyncio
 import logging
 import aio_pika
-from gestalt.comms.amq.consumer import Consumer
+from gestalt.amq.consumer import Consumer
 from gestalt.runner import run
 import position_pb2  # loads protobuf structure into symbol database
 from typing import Any

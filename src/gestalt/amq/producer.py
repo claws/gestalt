@@ -6,7 +6,7 @@ import asyncio
 import logging
 import aio_pika
 import time
-from gestalt.comms.amq import utils
+from gestalt.amq import utils
 
 from asyncio import AbstractEventLoop
 from typing import Any, Callable, Dict
@@ -22,7 +22,7 @@ class Producer(object):
     def __init__(
         self,
         # app_id: str,
-        amqp_url: str,
+        amqp_url: str = "",
         exchange_name: str = "",
         exchange_type: aio_pika.ExchangeType = aio_pika.ExchangeType.TOPIC,
         routing_key: str = "",
@@ -42,10 +42,13 @@ class Producer(object):
           queue to the exchange.
 
         :param serialization: The name of the default serialization strategy to
-          use when publishing messages.
+          use when publishing messages. This strategy will be applied if no
+          serialization is explicitly specified when publishing a message.
 
-        :param compression: The name of the default compression strategy to
-          use when publishing messages.
+        :param compression: An optional string specifying the compression
+          strategy to use. It can be provided using the convenience name or
+          the mime-type. This strategy will be applied if no compression is
+          explicitly specified when publishing a message.
 
         :param loop: The event loop to run in. Defaults to the currently
           running event loop.

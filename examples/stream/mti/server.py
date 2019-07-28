@@ -2,7 +2,8 @@ import asyncio
 import datetime
 import logging
 from gestalt.serialization import CONTENT_TYPE_JSON
-from gestalt.stream.netstring import NetstringStreamServer
+from gestalt.stream.mti import MtiStreamServer
+from position_pb2 import Position
 
 
 if __name__ == "__main__":
@@ -10,7 +11,7 @@ if __name__ == "__main__":
     import argparse
     from gestalt.runner import run
 
-    ARGS = argparse.ArgumentParser(description="Stream Netstring Server Example")
+    ARGS = argparse.ArgumentParser(description="Stream MTI Server Example")
     ARGS.add_argument(
         "--host",
         metavar="<host>",
@@ -63,13 +64,16 @@ if __name__ == "__main__":
         # Wait briefly before sending a reply to the reply!
         await asyncio.sleep(1)
 
+        protobuf_data = Position(
+            latitude=130.0, longitude=-30.0, altitude=50.0, status=Position.SIMULATED
+        )
+        print(f"sending a message: {protobuf_data}")
+        client.send(protobuf_data, peer_id=peer_id, type_identifier=type_identifier)
+
         msg_count = data["counter"] + 1
-        # Send a reply to the specific peer that sent the msg
-        now = datetime.datetime.now(tz=datetime.timezone.utc)
-        msg = dict(timestamp=now.isoformat(), counter=msg_count)
         server.send(msg, peer_id=peer_id)
 
-    svr = NetstringStreamServer(
+    svr = MtiStreamServer(
         on_message=on_message,
         on_started=on_started,
         on_stopped=on_stopped,

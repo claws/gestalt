@@ -65,6 +65,20 @@ is as follows.
 
   * Run the test suite.
 
+    Some tests require optional dependencies. If the dependencies are not
+    installed then tests requiring these dependencies are skipped.
+
+    Some tests require RabbitMQ to be running with default user/password
+    (guest/guest) and port (5672). The easiest way to get it running is to
+    use Docker, such as:
+
+    .. code-block:: console
+
+        $ docker pull rabbitmq:3-management
+        $ docker run -d -p 5672:5672 -p 15672:15672 rabbitmq:3-management
+
+    Then execute the test suite.
+
     .. code-block:: console
 
         (venv) $ make test

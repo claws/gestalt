@@ -56,8 +56,10 @@ def encode_payload(
       default the value is None. This field determines the data
       serialization format.
 
-    :param compression: An optional string specifying a compression method to
-      use. If compression is defined then headers must also be supplied.
+    :param compression: An optional string specifying the compression strategy
+      to use. It can be provided using the convenience name or the mime-type.
+      If compression is defined then headers must also be supplied as
+      compression is passed as an attribute in message headers.
 
     :param headers: A dict of headers that will be associated with the
       message.

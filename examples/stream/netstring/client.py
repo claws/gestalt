@@ -2,7 +2,7 @@ import asyncio
 import datetime
 import logging
 from gestalt.serialization import CONTENT_TYPE_JSON
-from gestalt.comms.stream.netstring import NetstringStreamClient
+from gestalt.stream.netstring import NetstringStreamClient
 
 
 if __name__ == "__main__":
