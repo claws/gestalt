@@ -92,8 +92,6 @@ def run(
                 finalize = finalize()
             loop.run_until_complete(finalize)
 
-        loop.run_until_complete(loop.shutdown_asyncgens())
-
         # Shutdown any outstanding tasks that are left running
         pending_tasks = all_tasks(loop=loop)
         if pending_tasks:
@@ -101,7 +99,12 @@ def run(
             for task in pending_tasks:
                 logger.debug(f"Cancelling task: {task}")
                 task.cancel()
-            loop.run_until_complete(asyncio.gather(*pending_tasks))
+            try:
+                loop.run_until_complete(asyncio.gather(*pending_tasks))
+            except asyncio.CancelledError:
+                pass
+
+        loop.run_until_complete(loop.shutdown_asyncgens())
 
         logger.debug("Application shutdown sequence complete")
 

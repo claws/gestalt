@@ -6,7 +6,9 @@ from gestalt.compression import COMPRESSION_GZIP, COMPRESSION_BZ2
 from gestalt.serialization import (
     CONTENT_TYPE_TEXT,
     CONTENT_TYPE_JSON,
+    CONTENT_TYPE_MSGPACK,
     CONTENT_TYPE_PROTOBUF,
+    CONTENT_TYPE_YAML,
 )
 from gestalt import serialization
 from gestalt.amq.producer import Producer
@@ -40,7 +42,19 @@ async def message_producer(p: Producer) -> None:
         json_msg = dict(latitude=latitude, longitude=longitude, altitude=altitude)
         print(f"sending a JSON message: {json_msg}")
         await p.publish_message(
-            json_msg, content_type=CONTENT_TYPE_JSON, compression="zlib"
+            json_msg, content_type=CONTENT_TYPE_JSON, compression=compression_name
+        )
+        await asyncio.sleep(1.0)
+
+        msgpack_msg = dict(latitude=latitude, longitude=longitude, altitude=altitude)
+        print(f"sending a Msgpack message: {msgpack_msg}")
+        await p.publish_message(msgpack_msg, content_type=CONTENT_TYPE_MSGPACK)
+        await asyncio.sleep(1.0)
+
+        yaml_msg = dict(latitude=latitude, longitude=longitude, altitude=altitude)
+        print(f"sending a YAML message: {yaml_msg}")
+        await p.publish_message(
+            yaml_msg, content_type=CONTENT_TYPE_YAML, compression=compression_name
         )
         await asyncio.sleep(1.0)
 

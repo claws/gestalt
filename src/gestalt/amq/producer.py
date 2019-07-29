@@ -21,7 +21,6 @@ class Producer(object):
 
     def __init__(
         self,
-        # app_id: str,
         amqp_url: str = "",
         exchange_name: str = "",
         exchange_type: aio_pika.ExchangeType = aio_pika.ExchangeType.TOPIC,
