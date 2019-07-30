@@ -1,6 +1,6 @@
 The example in this directory uses the message type identifier (MTI)
 stream endpoint to build a client and a server application. The content
-type being transferred is agreed up front, in this case it in Protobuf.
+type being transferred is agreed up front, in this case it is Protobuf.
 
 The examples may be started in any order. Command line help may be obtained
 by passing the ``-h`` option to the script.

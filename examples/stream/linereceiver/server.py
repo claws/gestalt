@@ -1,8 +1,8 @@
 import asyncio
 import datetime
 import logging
-from gestalt.serialization import CONTENT_TYPE_JSON
-from gestalt.stream.netstring import NetstringStreamClient
+from gestalt.serialization import CONTENT_TYPE_DATA
+from delimited import LineDelimitedStreamServer
 
 
 if __name__ == "__main__":
@@ -10,13 +10,13 @@ if __name__ == "__main__":
     import argparse
     from gestalt.runner import run
 
-    ARGS = argparse.ArgumentParser(description="Stream Netstring Client Example")
+    ARGS = argparse.ArgumentParser(description="Stream Netstring Server Example")
     ARGS.add_argument(
         "--host",
         metavar="<host>",
         type=str,
         default="localhost",
-        help="The host the server will run on",
+        help="The host the server will running on",
     )
     ARGS.add_argument(
         "--port",
@@ -45,42 +45,37 @@ if __name__ == "__main__":
         level=numeric_level,
     )
 
-    def on_started(client):
-        print("Client has started")
+    def on_started(server):
+        print("Server has started")
 
-    def on_stopped(client):
-        print("Client has stopped")
+    def on_stopped(server):
+        print("Server has stopped")
 
-    def on_peer_available(client, peer_id):
-        print(f"Client {peer_id} connected")
+    def on_peer_available(server, peer_id):
+        print(f"Server peer {peer_id} connected")
 
-        # Upon connection, send a message to the server
-        now = datetime.datetime.now(tz=datetime.timezone.utc)
-        msg = dict(timestamp=now.isoformat(), counter=1)
-        client.send(msg, peer_id=peer_id)
+    def on_peer_unavailable(server, peer_id):
+        print(f"Server peer {peer_id} connected")
 
-    def on_peer_unavailable(client, peer_id):
-        print(f"Client {peer_id} connected")
-
-    async def on_message(client, data, peer_id, **kwargs) -> None:
-        print(f"Client received msg from {peer_id}: {data}")
+    async def on_message(server, data, peer_id, **kwargs) -> None:
+        msg = data.decode()
+        print(f"Server received msg from {peer_id}: {msg}")
 
         # Wait briefly before sending a reply to the reply!
         await asyncio.sleep(1)
 
-        msg_count = data["counter"] + 1
-        # Send a reply to the specific peer that sent the msg
         now = datetime.datetime.now(tz=datetime.timezone.utc)
-        msg = dict(timestamp=now.isoformat(), counter=msg_count)
-        client.send(msg, peer_id=peer_id)
+        msg = now.isoformat()
+        # Send a reply to the specific peer that sent the msg
+        server.send(msg.encode(), peer_id=peer_id)
 
-    client = NetstringStreamClient(
+    svr = LineDelimitedStreamServer(
         on_message=on_message,
         on_started=on_started,
         on_stopped=on_stopped,
         on_peer_available=on_peer_available,
         on_peer_unavailable=on_peer_unavailable,
-        content_type=CONTENT_TYPE_JSON,
+        content_type=CONTENT_TYPE_DATA,
     )
 
-    run(client.start(args.host, args.port), finalize=client.stop)
+    run(svr.start(args.host, args.port), finalize=svr.stop)

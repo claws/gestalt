@@ -44,7 +44,7 @@ if __name__ == "__main__":
         level=numeric_level,
     )
 
-    def on_message(data, **kwargs) -> None:
+    def on_message(self, data, **kwargs) -> None:
         addr = kwargs.get("addr")
         print(f"Received msg from {addr}: {data}")
 

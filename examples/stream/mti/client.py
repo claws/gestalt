@@ -71,13 +71,16 @@ if __name__ == "__main__":
         # Wait briefly before sending a reply to the reply!
         await asyncio.sleep(1)
 
-        msg_count = data["counter"] + 1
-        # Send a reply to the specific peer that sent the msg
-        now = datetime.datetime.now(tz=datetime.timezone.utc)
-        msg = dict(timestamp=now.isoformat(), counter=msg_count)
-        client.send(msg, peer_id=peer_id)
+        protobuf_data = Position(
+            latitude=data.latitude - 0.1,
+            longitude=data.longitude - 0.1,
+            altitude=data.altitude - 0.1,
+            status=Position.SIMULATED,
+        )
 
-    svr = MtiStreamClient(
+        client.send(protobuf_data, peer_id=peer_id, type_identifier=type_identifier)
+
+    client = MtiStreamClient(
         on_message=on_message,
         on_started=on_started,
         on_stopped=on_stopped,
@@ -88,6 +91,6 @@ if __name__ == "__main__":
 
     # Associate a message object with a unique message type identifier.
     type_identifier = 1
-    svr.register_message(type_identifier, Position)
+    client.register_message(type_identifier, Position)
 
-    run(svr.start(args.host, args.port), finalize=svr.stop)
+    run(client.start(args.host, args.port), finalize=client.stop)
