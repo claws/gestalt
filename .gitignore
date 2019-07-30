@@ -67,6 +67,7 @@ instance/
 docs/_build/
 docs/build/
 docs/source/api/
+docs/source/coverage
 
 # PyBuilder
 target/

@@ -54,15 +54,14 @@ test-coverage: generate certs
 .PHONY: style
 style:
 	@# Avoid formatting automatically generated code by excluding it
-	@black src/gestalt tests setup.py examples --exclude .*_pb2\.py
+	@black src/gestalt tests setup.py examples docs/source --exclude .*_pb2\.py
 
 
 # help: style-check                    - perform code format compliance check
 .PHONY: style-check
 style-check:
 	@# Avoid formatting automatically generated code by excluding it
-	@black src/gestalt tests setup.py examples --check --exclude .*_pb2\.py
-
+	@black src/gestalt tests setup.py examples docs/source --check --exclude .*_pb2\.py
 
 
 # help: check-types                    - check type hint annotations
@@ -70,9 +69,10 @@ style-check:
 check-types:
 	@cd src; mypy -p gestalt --ignore-missing-imports
 
+
 # help: docs                           - generate project documentation
-.PHONY: check-coverage
-docs: check-coverage
+.PHONY: docs
+docs: test-coverage
 	@cd docs; rm -rf source/api/gestalt*.rst source/api/modules.rst build/*
 	@cd docs; make html
 	@# Copy coverage output into docs build tree
@@ -128,6 +128,7 @@ regenerate:
 	@echo "deleting examples/stream/mti/position_pb2.py"
 	@rm -f examples/stream/mti/position_pb2.py
 	@make generate
+
 
 # help: certs                          - generate certificates for unit tests
 certs: tests/certs/ca.key

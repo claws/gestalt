@@ -30,15 +30,15 @@ management plugin. The RabbitMQ container listens on the default port of
 port of 15672. The default username and password for the management plugin
 is guest / guest.
 
-``` console
-$ docker pull rabbitmq:3-management
-```
+.. code-block:: console
+
+    $ docker pull rabbitmq:3-management
 
 Then run the RabbitMQ service.
 
-``` console
-$ docker run -d --hostname my-rabbit --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3-management
-```
+.. code-block:: console
+
+    $ docker run -d --hostname my-rabbit --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3-management
 
 Once the RabbitMQ service is running we can run the integration tests. You can
 access the RabbitMQ management interface by visiting http://<container-ip>:15672

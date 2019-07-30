@@ -2,6 +2,7 @@ asynctest
 black
 coverage
 mypy
+m2r
 sphinx
 twine
 wheel
