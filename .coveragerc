@@ -1,14 +1,27 @@
 [run]
 branch = True
+source = gestalt
+omit =
+	tests/
+
+
+[paths]
+source =
+    src/gestalt
+    */site-packages/gestalt
 
 [report]
 exclude_lines =
-	pragma: no cover
-	def __repr__
-	if self.debug
-	raise AssertionError
-	raise NotImplentedError
-	if 0:
-	if __name__ == .__main__.:
+    pragma: no cover
+    def __repr__
+    if self.debug
+    raise AssertionError
+    raise NotImplentedError
+    if 0:
+    if __name__ == .__main__.:
 
 ignore_errors = True
+
+[html]
+title = Gestalt Coverage Test Report
+directory = docs/source/coverage

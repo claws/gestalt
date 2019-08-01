@@ -43,9 +43,10 @@ test-verbose: generate certs
 # help: test-coverage                  - perform test coverage checks
 .PHONY: test-coverage
 test-coverage: generate certs
+	@coverage erase
 	@coverage run -m unittest discover -s tests -v
 	@# produce html coverage report on modules
-	@coverage html -d docs/source/coverage --include="src/gestalt/*"
+	@coverage html
 	@# rename coverage html file for latter use with documentation
 	@cd docs/source/coverage; mv index.html coverage.html
 
