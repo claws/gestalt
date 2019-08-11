@@ -41,7 +41,7 @@ def setUpModule():
         except Exception as exc:
             pass
 
-    loop = asyncio.get_event_loop()
+    loop = asyncio.new_event_loop()
     loop.run_until_complete(is_rabbitmq_available())
     loop.close()
 

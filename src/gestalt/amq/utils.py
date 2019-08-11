@@ -24,7 +24,7 @@ def build_amqp_url(
     Create a AMQP connection URL from parameters.
 
     If no parameters are passed to optional arguments then the environment is
-    inspected for settings prefixed with 'RABBITMQ_'.
+    inspected for settings prefixed with ``RABBITMQ_``.
 
     :param user: Login credentials username.
 
