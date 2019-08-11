@@ -24,22 +24,29 @@ class StreamEndpointModes(enum.Enum):
 
 class StreamEndpoint(object):
     """
-    An endpoint is used to communicate with other stream oriented interfaces.
+    A stream endpoint provides two-way communications with a another stream
+    oriented interface. Depending on the protocol being used, an endpoint can
+    operate on a simple stream of bytes or on higher level message objects.
 
-    An endpoint may operate in either a client or server mode. When operating in
-    client mode it will support connecting to a server. When operating in server
-    mode it will support binding to a port and will listen for connections from
-    clients.
+    A stream endpoint operates in one of two modes; client or server.
 
-    Users of an endpoint are expected to pass callback functions to receive
-    notifications of endpoint events such as new peers joining, existing peers
-    leaving and receipt of messages.
+    When operating in server mode a stream endpoint will bind to an interface
+    and port to listen for connections from clients. Upon detecting new client
+    connections the server will instantiate a new protocol instance to handle
+    communications with the peer.
+
+    When operating in client mode a stream endpoint will connecting to a
+    server on the supplied interface and port. A client endpoint
+
+    An endpoint uses callback functions to notify the endpoint user when
+    specific events occur, such as starting, stopping, peer connection, peer
+    disconnection) and receipt of messages.
     """
 
     # Concrete endpoint implementations must define the protocol object to
     # be instantiated to handle a connection with a peer. The protocol is
     # expected to inherit from the
-    # :ref:`gestalt.comms.streams.protocols.base.BaseStreamProtocol` interface.
+    # :ref:`gestalt.stream.protocols.base.BaseStreamProtocol` interface.
     protocol_class = None
 
     is_server: bool = False
@@ -189,9 +196,10 @@ class StreamEndpoint(object):
 
         :param ssl: an optional sslContext for use with TLS.
 
-        :param reconnect: A boolean flag that determines whether a client
-          endpoint should automatically attempt to reconnect if the connection
-          is dropped. Only used for endpoints operating as a client.
+        :param reconnect: A boolean flag that determines whether the endpoint
+          should automatically attempt to reconnect if the connection is
+          dropped. This argument is only used for endpoints operating in
+          client mode.
         """
         if self.running:
             return

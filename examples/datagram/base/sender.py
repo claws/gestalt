@@ -10,29 +10,30 @@ if __name__ == "__main__":
     import argparse
     from gestalt.runner import run
 
-    ARGS = argparse.ArgumentParser(description="UDP Sender Example")
-    ARGS.add_argument(
+    parser = argparse.ArgumentParser(description="UDP Sender Example")
+    parser.add_argument(
         "--host",
         metavar="<host>",
         type=str,
         default="localhost",
         help="The host the receiver is running on",
     )
-    ARGS.add_argument(
+    parser.add_argument(
         "--port",
         metavar="<port>",
         type=int,
         default=53123,
         help="The port that the receiver is listening on",
     )
-    ARGS.add_argument(
+    parser.add_argument(
         "--log-level",
         type=str,
+        choices=["debug", "info", "error"],
         default="error",
-        help="Logging level [debug|info|error]. Default is 'error'.",
+        help="Logging level. Default is 'error'.",
     )
 
-    args = ARGS.parse_args()
+    args = parser.parse_args()
 
     try:
         numeric_level = getattr(logging, args.log_level.upper())

@@ -1,29 +1,18 @@
 """
-The Message Type Identifier (MTI) endpoint uses a protocol that delimits
-separate messages on the srtream using a frame header that wraps each user
-message. The message framing strategy adds a length field and a message type
-identifier field to the message payload.
+The Message Type Identifier (MTI) enhances an endpoint with high level
+awareness of the messages it is transfering. This assists automatic encoding
+and decoding actions and can be useful to receiving applications that only
+want to process specific message kinds.
+
+The MTI protocol delimits separate messages on the stream using a frame header
+that wraps each user message. The message framing strategy adds a length field
+and a message type identifier field to the message payload.
 
 This framing strategy allows a receiving application to extract a message
-paylod from a stream and the message type identifer value in the header
+payload from a stream and the message type identifer value in the header
 provides additional context about what type of message is in the payload.
 This information can be used to help deserialize the data and convert
 (unmarshall) it into a convenient structure.
-
-The frame header consists of two uint32 fields. The value in the first
-field represents the number of bytes in the payload. The second field is
-used to store a message type identifier that can be used by a recipient to
-identify different message types flowing over the stream. Using this field
-is optional.
-
-.. code-block:: console
-
-    +-----------------------------+--------------------+
-    |             header          |  payload           |
-    +-----------------------------+--------------------+
-    | Message_Length | Message_Id |  DATA ....         |
-    |     uint32     |   uint32   |                    |
-    |----------------|------------|--------------------|
 
 Conveniently, messages with a payload size of zero are allowed. This
 results in just the message framing header being sent which transfers

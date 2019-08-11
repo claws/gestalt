@@ -14,29 +14,30 @@ if __name__ == "__main__":
     # crude guess of the network broadcast address
     broadcast_ip = ip_addr.rsplit(".", 1)[0] + ".255"
 
-    ARGS = argparse.ArgumentParser(description="UDP Sender Example")
-    ARGS.add_argument(
+    parser = argparse.ArgumentParser(description="UDP Sender Example")
+    parser.add_argument(
         "--broadcast-host",
         metavar="<host>",
         type=str,
         default=broadcast_ip,
         help="The network address to broadcast to",
     )
-    ARGS.add_argument(
+    parser.add_argument(
         "--broadcast-port",
         metavar="<port>",
         type=int,
         default=53123,
         help="The port to broadcast to",
     )
-    ARGS.add_argument(
+    parser.add_argument(
         "--log-level",
         type=str,
+        choices=["debug", "info", "error"],
         default="error",
-        help="Logging level [debug|info|error]. Default is 'error'.",
+        help="Logging level. Default is 'error'.",
     )
 
-    args = ARGS.parse_args()
+    args = parser.parse_args()
 
     try:
         numeric_level = getattr(logging, args.log_level.upper())

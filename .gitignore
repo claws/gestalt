@@ -68,6 +68,7 @@ docs/_build/
 docs/build/
 docs/source/api/
 docs/source/coverage
+docs/source/_static
 
 # PyBuilder
 target/

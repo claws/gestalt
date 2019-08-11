@@ -9,29 +9,30 @@ from gestalt.datagram.endpoint import DatagramEndpoint
 
 if __name__ == "__main__":
 
-    ARGS = argparse.ArgumentParser(description="UDP Receiver Example")
-    ARGS.add_argument(
+    parser = argparse.ArgumentParser(description="UDP Receiver Example")
+    parser.add_argument(
         "--host",
         metavar="<host>",
         type=str,
         default="0.0.0.0",  # socket.gethostbyname(socket.gethostname()),
         help="The host the receiver will running on",
     )
-    ARGS.add_argument(
+    parser.add_argument(
         "--port",
         metavar="<port>",
         type=int,
         default=53123,
         help="The port that the receiver will listening on",
     )
-    ARGS.add_argument(
+    parser.add_argument(
         "--log-level",
         type=str,
+        choices=["debug", "info", "error"],
         default="error",
-        help="Logging level [debug|info|error]. Default is 'error'.",
+        help="Logging level. Default is 'error'.",
     )
 
-    args = ARGS.parse_args()
+    args = parser.parse_args()
 
     try:
         numeric_level = getattr(logging, args.log_level.upper())

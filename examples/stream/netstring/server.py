@@ -10,29 +10,29 @@ if __name__ == "__main__":
     import argparse
     from gestalt.runner import run
 
-    ARGS = argparse.ArgumentParser(description="Stream Netstring Server Example")
-    ARGS.add_argument(
+    parser = argparse.ArgumentParser(description="Stream Netstring Server Example")
+    parser.add_argument(
         "--host",
         metavar="<host>",
         type=str,
         default="localhost",
         help="The host the server will running on",
     )
-    ARGS.add_argument(
+    parser.add_argument(
         "--port",
         metavar="<port>",
         type=int,
         default=53123,
         help="The port that the server will listen on",
     )
-    ARGS.add_argument(
+    parser.add_argument(
         "--log-level",
         type=str,
         default="error",
         help="Logging level [debug|info|error]. Default is 'error'.",
     )
 
-    args = ARGS.parse_args()
+    args = parser.parse_args()
 
     try:
         numeric_level = getattr(logging, args.log_level.upper())

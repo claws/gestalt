@@ -1,8 +1,6 @@
-import argparse
 import asyncio
-import logging
 import random
-from gestalt.compression import COMPRESSION_GZIP, COMPRESSION_BZ2
+from gestalt.compression import COMPRESSION_BZ2, COMPRESSION_GZIP
 from gestalt.serialization import (
     CONTENT_TYPE_TEXT,
     CONTENT_TYPE_JSON,
@@ -17,88 +15,74 @@ from position_pb2 import Position
 
 
 async def message_producer(p: Producer) -> None:
-    """ Generate a new GPS message, in various formats, and publish it """
+    """ Generate a new Position message, in various formats, and publish it """
 
-    LATITUDE = 130.0
-    LONGITUDE = -30.0
-    ALTITUDE = 50.0
-
-    count = 0
     while True:
-        count += 1
-        # Apply some pretend jitter to simulate realism
-        latitude = LATITUDE + (LATITUDE * 0.01)
-        longitude = LONGITUDE + (LONGITUDE * 0.01)
-        altitude = ALTITUDE + (ALTITUDE * 0.01)
 
-        text_msg = f"latitude={latitude},longitude={longitude},altitude={altitude}"
-        print(f"sending a text message: {text_msg}")
-        compression_name = random.choice([COMPRESSION_GZIP, COMPRESSION_BZ2])
+        msg = dict(latitude=130.0, longitude=-30.0, altitude=50.0)
+
+        content_type = random.choice(
+            [
+                CONTENT_TYPE_TEXT,
+                CONTENT_TYPE_JSON,
+                CONTENT_TYPE_MSGPACK,
+                CONTENT_TYPE_YAML,
+                CONTENT_TYPE_PROTOBUF,
+            ]
+        )
+        compression_name = random.choice([None, COMPRESSION_GZIP, COMPRESSION_BZ2])
+
+        print(
+            f"Sending message using content-type={content_type}, compression={compression_name}"
+        )
+
+        if content_type == CONTENT_TYPE_TEXT:
+            msg = ",".join(f"{k}={v}" for k, v in msg.items())
+        elif content_type == CONTENT_TYPE_PROTOBUF:
+            msg = Position(**msg)
+
         await p.publish_message(
-            text_msg, content_type=CONTENT_TYPE_TEXT, compression=compression_name
+            msg, content_type=content_type, compression=compression_name
         )
         await asyncio.sleep(1.0)
-
-        json_msg = dict(latitude=latitude, longitude=longitude, altitude=altitude)
-        print(f"sending a JSON message: {json_msg}")
-        await p.publish_message(
-            json_msg, content_type=CONTENT_TYPE_JSON, compression=compression_name
-        )
-        await asyncio.sleep(1.0)
-
-        msgpack_msg = dict(latitude=latitude, longitude=longitude, altitude=altitude)
-        print(f"sending a Msgpack message: {msgpack_msg}")
-        await p.publish_message(msgpack_msg, content_type=CONTENT_TYPE_MSGPACK)
-        await asyncio.sleep(1.0)
-
-        yaml_msg = dict(latitude=latitude, longitude=longitude, altitude=altitude)
-        print(f"sending a YAML message: {yaml_msg}")
-        await p.publish_message(
-            yaml_msg, content_type=CONTENT_TYPE_YAML, compression=compression_name
-        )
-        await asyncio.sleep(1.0)
-
-        protobuf_msg = Position(
-            latitude=latitude, longitude=longitude, altitude=altitude
-        )
-        print(f"sending a Protobuf message: {protobuf_msg}")
-        await p.publish_message(protobuf_msg, content_type=CONTENT_TYPE_PROTOBUF)
-        await asyncio.sleep(1.0)
-
-
-ARGS = argparse.ArgumentParser(description="AMQP Topic Producer Example")
-ARGS.add_argument(
-    "--amqp-url",
-    metavar="<url>",
-    type=str,
-    default="amqp://guest:guest@localhost:5672/",
-    help="The AMQP URL",
-)
-ARGS.add_argument(
-    "--exchange-name",
-    metavar="<name>",
-    type=str,
-    default="test",
-    help="The AMQP exchange name. Defaults to 'test'",
-)
-ARGS.add_argument(
-    "--routing-key",
-    metavar="<pattern>",
-    type=str,
-    default="position.update",
-    help="The routing key to use when publishing messages. Defaults to 'position.update'",
-)
-ARGS.add_argument(
-    "--log-level",
-    type=str,
-    default="error",
-    help="Logging level [debug|info|error]. Default is 'error'.",
-)
 
 
 if __name__ == "__main__":
 
-    args = ARGS.parse_args()
+    import argparse
+    import logging
+
+    parser = argparse.ArgumentParser(description="AMQP Topic Producer Example")
+    parser.add_argument(
+        "--amqp-url",
+        metavar="<url>",
+        type=str,
+        default="amqp://guest:guest@localhost:5672/",
+        help="The AMQP URL",
+    )
+    parser.add_argument(
+        "--exchange-name",
+        metavar="<name>",
+        type=str,
+        default="test",
+        help="The AMQP exchange name. Defaults to 'test'",
+    )
+    parser.add_argument(
+        "--routing-key",
+        metavar="<pattern>",
+        type=str,
+        default="position.update",
+        help="The routing key to use when publishing messages. Defaults to 'position.update'",
+    )
+    parser.add_argument(
+        "--log-level",
+        type=str,
+        choices=["debug", "info", "error"],
+        default="error",
+        help="Logging level. Default is 'error'.",
+    )
+
+    args = parser.parse_args()
 
     try:
         numeric_level = getattr(logging, args.log_level.upper())

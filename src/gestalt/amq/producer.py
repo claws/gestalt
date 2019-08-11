@@ -4,8 +4,10 @@ This module contains an AMQP message producer.
 
 import asyncio
 import logging
-import aio_pika
 import time
+
+from aio_pika import ExchangeType, Message, connect_robust
+from aio_pika.exceptions import AMQPError
 from gestalt.amq import utils
 
 from asyncio import AbstractEventLoop
@@ -23,7 +25,7 @@ class Producer(object):
         self,
         amqp_url: str = "",
         exchange_name: str = "",
-        exchange_type: aio_pika.ExchangeType = aio_pika.ExchangeType.TOPIC,
+        exchange_type: ExchangeType = ExchangeType.TOPIC,
         routing_key: str = "",
         reconnect_interval: int = 1.0,
         serialization: str = None,
@@ -37,8 +39,11 @@ class Producer(object):
 
         :param exchange_type: The type of exchange to declare. Default is topic.
 
-        :param routing-key: The routing key to use when binding the message
-          queue to the exchange.
+        :param routing-key: The default routing key to use when publishing a
+          message.
+
+        :param reconnect_interval: The number of seconds between reconnection
+          attempts. Defaults to 1.
 
         :param serialization: The name of the default serialization strategy to
           use when publishing messages. This strategy will be applied if no
@@ -67,11 +72,22 @@ class Producer(object):
 
     async def start(self) -> None:
         """ Start the publisher """
-        self.connection = await aio_pika.connect_robust(
-            self.amqp_url,
-            reconnect_interval=self.reconnect_interval,
-            add_reconnect_callback=self._on_reconnected,
-        )
+        try:
+            self.connection = await connect_robust(
+                self.amqp_url,
+                reconnect_interval=self.reconnect_interval,
+                add_reconnect_callback=self._on_reconnected,
+            )
+        except asyncio.CancelledError:
+            logger.info(f"Connection({self.amqp_url}) cancelled")
+            return
+        except (AMQPError, ConnectionError) as error:
+            logger.error(f"Connection({self.amqp_url}) {error}")
+            return
+        except Exception as ex:
+            logger.exception(ex)
+            return
+
         self.channel = await self.connection.channel()
         self.channel.add_close_callback(self._on_channel_closed)
 
@@ -119,8 +135,6 @@ class Producer(object):
           registered message. This parameter is only needed for some
           serialization methods that do not code in type awareness, such
           as Avro and Protobuf.
-
-
         """
         if self.connection is None:
             logger.error("Producer does not have a connection")
@@ -145,7 +159,7 @@ class Producer(object):
             return
 
         await self.exchange.publish(
-            aio_pika.Message(
+            Message(
                 body=payload,
                 content_type=content_type,
                 content_encoding=content_encoding,

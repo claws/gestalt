@@ -1,52 +1,21 @@
-import argparse
 import asyncio
 import logging
-import aio_pika
 from gestalt import serialization
 from gestalt.amq.consumer import Consumer
 from gestalt.runner import run
 from position_pb2 import Position
+
 from typing import Any
 
 
-ARGS = argparse.ArgumentParser(description="AMQP Topic Consumer Example")
-ARGS.add_argument(
-    "--amqp-url",
-    metavar="<url>",
-    type=str,
-    default="amqp://guest:guest@localhost:5672/",
-    help="The AMQP URL",
-)
-ARGS.add_argument(
-    "--exchange-name",
-    metavar="<name>",
-    type=str,
-    default="test",
-    help="The AMQP exchange name. Defaults to 'test'",
-)
-ARGS.add_argument(
-    "--routing-key",
-    metavar="<pattern>",
-    type=str,
-    default="position.#",
-    help="The routing key to bind the message queue. Defaults to 'position.#'",
-)
-ARGS.add_argument(
-    "--log-level",
-    type=str,
-    default="error",
-    help="Logging level [debug|info|error]. Default is 'error'.",
-)
-
-
-async def on_message_callback(payload: Any, message: aio_pika.IncomingMessage):
+async def on_message_callback(payload: Any, message: IncomingMessage):
     """ Consume messages in various formats.
 
     :param payload: The original message data after having gone through any
-        decompression and deserialization steps.
+      decompression and deserialization steps.
 
-    :param message: A aio_pika.IncomingMessage object containing meta-data that was
-        delivered with the message.
+    :param message: A IncomingMessage object containing meta-data that was
+      delivered with the message.
     """
     print(f"\nReceived msg")
     print(f"content_type={message.properties.content_type}")
@@ -56,7 +25,39 @@ async def on_message_callback(payload: Any, message: aio_pika.IncomingMessage):
 
 if __name__ == "__main__":
 
-    args = ARGS.parse_args()
+    import argparse
+
+    parser = argparse.ArgumentParser(description="AMQP Topic Consumer Example")
+    parser.add_argument(
+        "--amqp-url",
+        metavar="<url>",
+        type=str,
+        default="amqp://guest:guest@localhost:5672/",
+        help="The AMQP URL",
+    )
+    parser.add_argument(
+        "--exchange-name",
+        metavar="<name>",
+        type=str,
+        default="test",
+        help="The AMQP exchange name. Defaults to 'test'",
+    )
+    parser.add_argument(
+        "--routing-key",
+        metavar="<pattern>",
+        type=str,
+        default="position.#",
+        help="The routing key to bind the message queue. Defaults to 'position.#'",
+    )
+    parser.add_argument(
+        "--log-level",
+        type=str,
+        choices=["debug", "info", "error"],
+        default="error",
+        help="Logging level. Default is 'error'.",
+    )
+
+    args = parser.parse_args()
 
     try:
         numeric_level = getattr(logging, args.log_level.upper())

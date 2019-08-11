@@ -2,8 +2,10 @@
 
 # Gestalt
 
-Gestalt is a Python application framework for building distributed systems.
-Gestalt is written in Python to run on top of asyncio.
+Gestalt is an asyncio based Python package to help build distributed systems.
+
+Gestalt provides a variety of building blocks to assist building long-running
+network applications that leverage asyncio concurrency primitives.
 
 ```
 gestalt:
@@ -15,19 +17,25 @@ an organized whole that is perceived as more than the sum of its parts.
 
 ## Features
 
-Gestalt provides a variety of components that assist building asyncio
-applications. The main features are:
+The main features of Gestalt are:
 
 - An application runner that simplifies running an asyncio application by
   performing common setup such as creating an event loop, registering signal
   handlers, registering a global exception handler and performing graceful
   shutdown.
 
-- A Timer component that simplifies creating periodic calls to a function.
-  Timers can be created as single-shot, repeat a specified number of times
-  or repeat forever.
+- High level communications endpoints.
 
-- High level TCP and UDP communications endpoints.
+  - TCP
+
+    - Stream
+    - Netstring
+    - Message Type Identifier
+
+  - UDP
+
+    - Datagram
+    - Message Type Identifier
 
 - Support for automatic serialization and compression of message payloads.
 
@@ -35,8 +43,15 @@ applications. The main features are:
   Queuing Protocol (AMQP) is an open standard protocol specification for
   message passing, queuing, routing, reliability and security. One of the
   most popular implementations of AMQP is RabbitMQ. The Gestalt package
-  provides high level consumer and producer components that support automatic
-  message serialization and compression of message payloads.
+  provides high level components that support automatic message serialization
+  and compression of message payloads.
+
+  - Topic Publisher and Subscriber
+  - Request and Reply (RPC)
+
+- A Timer component that simplifies creating periodic calls to a function.
+  Timers can be created as single-shot, repeat a specified number of times
+  or repeat forever.
 
 
 ## Installation
@@ -49,10 +64,11 @@ Install core functionality using the command:
 $ pip install gestalt
 ```
 
-Gestalt uses third party Python packages to obtain support for features such
-as serialization, compression and message queuing. To install optional extras
-simply specify one or more of them using the extras specifier notation as
-shown in the example below which installs all of the available extras:
+Gestalt uses optional third party Python packages to obtain support for
+features such as serialization, compression and message queuing. To install
+optional extras simply specify one or more of them using the extras specifier
+notation as shown in the example below which installs all of the available
+extras:
 
 ```console
 $ pip install gestalt[amq,protobuf,msgpack,avro,brotli,snappy,yaml]
@@ -83,7 +99,6 @@ The [API Reference](http://gestalt.readthedocs.io) provides API-level documentat
 
 
 ### Performance Tip
-
 
 Consider using the high performance [uvloop](https://github.com/MagicStack/uvloop)
 event loop implementation instead of the default asyncio event loop.

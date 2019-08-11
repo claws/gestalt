@@ -20,11 +20,28 @@ def build_amqp_url(
     connection_attempts: int = None,
     heartbeat_interval: int = None,
 ) -> str:
+    """
+    Create a AMQP connection URL from parameters.
+
+    If no parameters are passed to optional arguments then the environment is
+    inspected for settings prefixed with 'RABBITMQ_'.
+
+    :param user: Login credentials username.
+
+    :param password: Login credentials password.
+
+    :param host: AMQP Broker host.
+
+    :param port: AMQP Broker port.
+
+    :param virtualhost: AMQP virtualhost to use.
+
+    """
     user = user if user else os.getenv("RABBITMQ_USER", "guest")
     password = password if password else os.getenv("RABBITMQ_PASS", "guest")
     host = host if host else os.getenv("RABBITMQ_HOST", "localhost")
     port = int(port if port else os.getenv("RABBITMQ_PORT", "5672"))
-    virtual_host = virtual_host if virtual_host else "%2F"
+    virtual_host = virtual_host if virtual_host else "/"
 
     options = []
     if connection_attempts:

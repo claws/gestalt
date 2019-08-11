@@ -108,6 +108,8 @@ html_theme_options = {
     "page_width": "80%",
 }
 
+html_static_path = ["_static"]
+
 # Custom sidebar templates, maps document names to template names.
 #
 html_sidebars = {"**": ["about.html", "navigation.html"]}

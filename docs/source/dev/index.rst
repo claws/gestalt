@@ -42,7 +42,7 @@ Then run the RabbitMQ service.
 
 Once the RabbitMQ service is running we can run the integration tests. You can
 access the RabbitMQ management interface by visiting http://<container-ip>:15672
-in a browser.
+in a browser and log in using the default username and password of guest, guest.
 
 Run Tests
 ---------
@@ -90,7 +90,7 @@ Use the Makefile convenience rule to run the tests.
 
     (venv) $ make check-coverage
 
-The test code coverage report can be found `here <../coverage/coverage.html>`_
+The test code coverage report can be found `here <../_static/coverage/index.html>`_
 
 
 .. _style-compliance-label:

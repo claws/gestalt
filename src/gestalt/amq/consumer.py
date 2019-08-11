@@ -1,20 +1,21 @@
 """
-This module contains an AMQP consumer.
+This module contains an AMQP message consumer.
 """
 
 import asyncio
 import logging
-import aio_pika
 import inspect
 import time
 
+from aio_pika import ExchangeType, IncomingMessage, connect_robust
+from aio_pika.exceptions import AMQPError
 from gestalt.amq import utils
 from gestalt.serialization import loads
 
 from asyncio import AbstractEventLoop
 from typing import Any, Callable
 
-MessageHandlerType = Callable[[Any, aio_pika.IncomingMessage], None]
+MessageHandlerType = Callable[[Any, IncomingMessage], None]
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +35,7 @@ class Consumer(object):
         self,
         amqp_url: str = "",
         exchange_name: str = "",
-        exchange_type: aio_pika.ExchangeType = aio_pika.ExchangeType.TOPIC,
+        exchange_type: ExchangeType = ExchangeType.TOPIC,
         routing_key: str = "",
         reconnect_interval: int = 1.0,
         prefetch_count: int = 1,
@@ -52,13 +53,18 @@ class Consumer(object):
         :param routing-key: The routing key to use when binding the message
           queue to the exchange.
 
+        :param reconnect_interval: The number of seconds between reconnection
+          attempts. Defaults to 1.
+
         :param prefetch_count: This parameter sets the limit of how many
           unacknowledged messages can be outstanding at any time on the
           channel.
 
         :param on_message: a user function that will be called whenever a new
-          message is received. The callback is expected to take one argument
-          which is a aio_pika.IncomingMessage object.
+          message is received. The callback is expected to take two arguments
+          which are a message payload (automatically decompressed and
+          deserialized) and a IncomingMessage object which provides
+          the handler function with access to message headers.
 
         :param loop: The event loop to run in.
         """
@@ -73,14 +79,15 @@ class Consumer(object):
         self.connection = None
         self.channel = None
         self.exchange = None
+        self.queue = None
 
+        self._consumer_tag = None
         self._on_message_handler = on_message
-        self._consumer_task = None  # type: asyncio.Task
 
     async def start(self) -> None:
         """ Start the client """
         try:
-            self.connection = await aio_pika.connect_robust(
+            self.connection = await connect_robust(
                 self.amqp_url,
                 reconnect_interval=self.reconnect_interval,
                 add_reconnect_callback=self._on_reconnected,
@@ -88,14 +95,13 @@ class Consumer(object):
         except asyncio.CancelledError:
             logger.info(f"Connection({self.amqp_url}) cancelled")
             return
-        except (aio_pika.exceptions.AMQPError, ConnectionError) as error:
+        except (AMQPError, ConnectionError) as error:
             logger.error(f"Connection({self.amqp_url}) {error}")
             return
         except Exception as ex:
             logger.exception(ex)
             return
 
-        # Creating a channel
         self.channel = await self.connection.channel()
         self.channel.add_close_callback(self._on_channel_closed)
 
@@ -110,40 +116,39 @@ class Consumer(object):
         # Declare a queue. Let the server allocate a queue name and inform the
         # server this queue is exclusively for this consumer. This allows the
         # AMQP broker to delete the queue if this consumer disconnects.
-        queue = await self.channel.declare_queue(exclusive=True)
+        self.queue = await self.channel.declare_queue(exclusive=True)
 
         # Bind the queue to the exchange
         logger.debug(
             f"binding consumer queue to exchange {self.exchange_name} with routing-key={self.routing_key}"
         )
-        await queue.bind(self.exchange, routing_key=self.routing_key)
+        await self.queue.bind(self.exchange, routing_key=self.routing_key)
 
-        # Create a long running task to process messages published to the queue
-        # and keep a reference to the task so it can be cancelled as part of a
-        # graceful shutdown.
-        self._consumer_task = self.loop.create_task(queue.consume(self.on_message))
+        # Keep a reference to the queue message processing task to so it
+        # can be cancelled as part of a graceful shutdown.
+        self._consumer_tag = await self.queue.consume(self.on_message)
 
     async def stop(self) -> None:
         """ Stop the client """
         # Stop the message queue processing task
-        if self._consumer_task and not self._consumer_task.done():
-            self._consumer_task.cancel()
-            await self._consumer_task
-        self._consumer_task = None
+        if self.queue:
+            await self.queue.cancel(self._consumer_tag)
+            self._consumer_tag = None
+            await self.queue.delete()
+        self.queue = None
 
         if self.channel and not self.channel.is_closed:
             await self.channel.close()
+        self.channel = None
 
         if self.connection and not self.connection.is_closed:
             await self.connection.close()
         self.connection = None
-        self.channel = None
+
         self.exchange = None
 
-    async def on_message(self, message: aio_pika.IncomingMessage):
-        """
-
-        """
+    async def on_message(self, message: IncomingMessage):
+        """ Process a message """
         # Acknowledge that the message has been successfully processed
         # by using a context manager to ACK the message. If an exception
         # occurs in the user callback function then no ACK is sent which
@@ -157,9 +162,7 @@ class Consumer(object):
                     return
 
                 try:
-                    maybe_awaitable = self._on_message_handler(
-                        payload, message  # message.properties
-                    )
+                    maybe_awaitable = self._on_message_handler(payload, message)
                     if inspect.isawaitable(maybe_awaitable):
                         await maybe_awaitable
                 except Exception as exc:

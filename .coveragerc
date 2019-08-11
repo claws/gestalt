@@ -1,14 +1,15 @@
 [run]
 branch = True
-source = gestalt
+source =
+    src/gestalt
 omit =
-	tests/
+    venv/*
 
 
 [paths]
 source =
     src/gestalt
-    */site-packages/gestalt
+    **/site-packages/gestalt
 
 [report]
 exclude_lines =
@@ -24,4 +25,4 @@ ignore_errors = True
 
 [html]
 title = Gestalt Coverage Test Report
-directory = docs/source/coverage
+directory = docs/source/_static/coverage

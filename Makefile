@@ -45,10 +45,7 @@ test-verbose: generate certs
 test-coverage: generate certs
 	@coverage erase
 	@coverage run -m unittest discover -s tests -v
-	@# produce html coverage report on modules
 	@coverage html
-	@# rename coverage html file for latter use with documentation
-	@cd docs/source/coverage; mv index.html coverage.html
 
 
 # help: style                          - perform code format compliance check
@@ -76,8 +73,6 @@ check-types:
 docs: test-coverage
 	@cd docs; rm -rf source/api/gestalt*.rst source/api/modules.rst build/*
 	@cd docs; make html
-	@# Copy coverage output into docs build tree
-	@cd docs; cp -R source/coverage build/html/.
 
 
 # help: check-docs                     - quick check docs consistency
@@ -120,13 +115,9 @@ generate: tests/position_pb2.py \
 
 # help: regenerate                     - force regenerate protobuf code stubs
 regenerate:
-	@echo "deleting tests/position_pb2.py"
 	@rm -f tests/position_pb2.py
-	@echo "deleting examples/amq/position_pb2.py"
 	@rm -f examples/amq/position_pb2.py
-	@echo "deleting examples/datagram/mti/position_pb2.py"
 	@rm -f examples/datagram/mti/position_pb2.py
-	@echo "deleting examples/stream/mti/position_pb2.py"
 	@rm -f examples/stream/mti/position_pb2.py
 	@make generate
 
