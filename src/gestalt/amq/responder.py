@@ -15,6 +15,7 @@ from gestalt.amq import utils
 from gestalt.serialization import loads
 
 from asyncio import AbstractEventLoop
+from aio_pika import Connection, Channel, Exchange, Queue
 from typing import Any, Callable, Dict
 
 MessageHandlerType = Callable[[Any, IncomingMessage], None]
@@ -106,6 +107,10 @@ class Responder(object):
 
     async def start(self) -> None:
         """ Start the client """
+        if self.queue:
+            # Already running
+            return
+
         try:
             self.connection = await connect_robust(
                 self.amqp_url,
@@ -122,6 +127,9 @@ class Responder(object):
             logger.exception(ex)
             return
 
+        # keep mypy happy by checking connection is no longer None
+        assert isinstance(self.connection, Connection)
+
         # Creating a channel
         self.channel = await self.connection.channel()
         self.channel.add_close_callback(self._on_channel_closed)
@@ -129,22 +137,29 @@ class Responder(object):
         # Specify the maximum number of messages being processed.
         await self.channel.set_qos(prefetch_count=self.prefetch_count)
 
-        # Declare the exchange - if not the default exchange.
+        # Declare the exchange.
         if self.exchange_name == "":
             self.exchange = self.channel.default_exchange
         else:
             self.exchange = await self.channel.declare_exchange(
-                self.exchange_name, self.exchange_type, auto_delete=True
+                self.exchange_name, self.exchange_type, durable=True
             )
 
         # Declare the service queue and configure it to send any unhandled
-        # messgages to a specific dead letter exchange.
+        # messages to a specific dead letter exchange.
         self.queue = await self.channel.declare_queue(
             self.service_name,
             durable=False,
             auto_delete=True,
             arguments={"x-dead-letter-exchange": self.dlx_name},
         )
+
+        if self.exchange_name != "":
+            # Bind the queue to the exchange
+            logger.debug(
+                f"binding responder queue to exchange {self.exchange_name} with routing-key={self.service_name}"
+            )
+            await self.queue.bind(self.exchange, routing_key=self.service_name)
 
         self._consumer_tag = await self.queue.consume(self._on_request_message)
 
@@ -216,6 +231,8 @@ class Responder(object):
         )
 
         try:
+            # Responses should always use the default exchange to route the
+            # message to the queue created by the consumer.
             await self.channel.default_exchange.publish(
                 response_message, message.reply_to, mandatory=False
             )

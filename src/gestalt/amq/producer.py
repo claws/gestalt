@@ -24,7 +24,7 @@ class Producer(object):
     def __init__(
         self,
         amqp_url: str = "",
-        exchange_name: str = "",
+        exchange_name: str = "amq.topic",
         exchange_type: ExchangeType = ExchangeType.TOPIC,
         routing_key: str = "",
         reconnect_interval: int = 1.0,
@@ -72,6 +72,10 @@ class Producer(object):
 
     async def start(self) -> None:
         """ Start the publisher """
+        if self.channel:
+            # Already started
+            return
+
         try:
             self.connection = await connect_robust(
                 self.amqp_url,
@@ -92,15 +96,21 @@ class Producer(object):
         self.channel.add_close_callback(self._on_channel_closed)
 
         self.exchange = await self.channel.declare_exchange(
-            self.exchange_name, self.exchange_type
+            self.exchange_name,
+            self.exchange_type,
+            durable=self.exchange_name == "amq.topic",
         )
 
     async def stop(self) -> None:
         """ Stop the publisher """
-        await self.channel.close()
-        await self.connection.close()
-        self.connection = None
+        if self.channel and not self.channel.is_closed:
+            await self.channel.close()
         self.channel = None
+
+        if self.connection and not self.connection.is_closed:
+            await self.connection.close()
+        self.connection = None
+
         self.exchange = None
 
     async def publish_message(
@@ -122,8 +132,8 @@ class Producer(object):
           to the class initializer is used.
 
         :param content_type: A string defining the message serialization
-          content type. By default the value is None in which case a best effort
-          guess will be made based on the supplied data.
+          content type. If not specified then the default serialization
+          strategy will be assumed.
 
         :param compression: The name of the compression strategy to use. The
           default value is None. In this case the default compression strategy
@@ -142,6 +152,7 @@ class Producer(object):
 
         routing_key = routing_key if routing_key else self.routing_key
 
+        serialization = content_type if content_type else self.serialization
         compression = compression if compression else self.compression
 
         headers = {}
@@ -149,7 +160,7 @@ class Producer(object):
         try:
             payload, content_type, content_encoding = utils.encode_payload(
                 data,
-                content_type=content_type,
+                content_type=serialization,
                 compression=compression,
                 headers=headers,
                 type_identifier=type_identifier,

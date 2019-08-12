@@ -16,7 +16,8 @@ from gestalt.amq import utils
 from gestalt.serialization import loads
 
 from asyncio import AbstractEventLoop
-from typing import Any, Callable, Dict
+from aio_pika import Connection, Channel, Exchange, Queue
+from typing import Any, Callable, Dict, Optional
 
 MessageHandlerType = Callable[[Any, IncomingMessage], None]
 
@@ -111,6 +112,10 @@ class Requester(object):
 
     async def start(self) -> None:
         """ Start the client """
+        if self.response_queue:
+            # Already running
+            return
+
         try:
             self.connection = await connect_robust(
                 self.amqp_url,
@@ -127,6 +132,9 @@ class Requester(object):
             logger.exception(ex)
             return
 
+        # keep mypy happy by checking connection is no longer None
+        assert isinstance(self.connection, Connection)
+
         # Creating a channel
         self.channel = await self.connection.channel()
         self.channel.add_close_callback(self._on_channel_closed)
@@ -135,12 +143,12 @@ class Requester(object):
         # Specify the maximum number of messages being processed.
         await self.channel.set_qos(prefetch_count=self.prefetch_count)
 
-        # Declare the exchange - if not the default exchange.
+        # Declare the exchange.
         if self.exchange_name == "":
             self.exchange = self.channel.default_exchange
         else:
             self.exchange = await self.channel.declare_exchange(
-                self.exchange_name, self.exchange_type, auto_delete=True
+                self.exchange_name, self.exchange_type, durable=True
             )
 
         # Create a dead letter exchange where the broker can move any
@@ -249,6 +257,9 @@ class Requester(object):
         except Exception as exc:
             logger.exception("Error encoding request payload")
             return
+
+        # keep mypy happy by checking attribute is no longer None
+        assert isinstance(self.response_queue, Queue)
 
         # Add a 'From' entry to message headers which will be used to route an
         # expired message to the dead letter exchange queue.

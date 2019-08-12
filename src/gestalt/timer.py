@@ -2,7 +2,7 @@ import asyncio
 import logging
 import inspect
 import time
-from typing import Callable, Awaitable
+from typing import Awaitable, Callable, Optional
 from asyncio import AbstractEventLoop
 
 logger = logging.getLogger(__name__)
@@ -78,7 +78,7 @@ class Timer(object):
         self._args = args
         self._kwargs = kwargs
 
-        self._handle = None
+        self._handle = None  # type: Optional[asyncio.Handle]
         self._task = None
         self._started = False
         self._running = False

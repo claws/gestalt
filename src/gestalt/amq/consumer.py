@@ -13,7 +13,8 @@ from gestalt.amq import utils
 from gestalt.serialization import loads
 
 from asyncio import AbstractEventLoop
-from typing import Any, Callable
+from aio_pika import Connection, Channel, Exchange, Queue
+from typing import Any, Callable, Optional
 
 MessageHandlerType = Callable[[Any, IncomingMessage], None]
 
@@ -34,10 +35,10 @@ class Consumer(object):
     def __init__(
         self,
         amqp_url: str = "",
-        exchange_name: str = "",
+        exchange_name: str = "amq.topic",
         exchange_type: ExchangeType = ExchangeType.TOPIC,
         routing_key: str = "",
-        reconnect_interval: int = 1.0,
+        reconnect_interval: float = 1.0,
         prefetch_count: int = 1,
         on_message: MessageHandlerType = None,
         loop: AbstractEventLoop = None,
@@ -54,7 +55,7 @@ class Consumer(object):
           queue to the exchange.
 
         :param reconnect_interval: The number of seconds between reconnection
-          attempts. Defaults to 1.
+          attempts. Defaults to 1.0.
 
         :param prefetch_count: This parameter sets the limit of how many
           unacknowledged messages can be outstanding at any time on the
@@ -81,13 +82,17 @@ class Consumer(object):
         self.exchange = None
         self.queue = None
 
-        self._consumer_tag = None
+        self._consumer_tag = None  # type: Optional[str]
         self._on_message_handler = on_message
 
     async def start(self) -> None:
         """ Start the client """
+        if self.queue:
+            # Already started
+            return
+
         try:
-            self.connection = await connect_robust(
+            self.connection = await connect_robust(  # type: ignore
                 self.amqp_url,
                 reconnect_interval=self.reconnect_interval,
                 add_reconnect_callback=self._on_reconnected,
@@ -102,6 +107,9 @@ class Consumer(object):
             logger.exception(ex)
             return
 
+        # keep mypy happy by checking connection is no longer None
+        assert isinstance(self.connection, Connection)
+
         self.channel = await self.connection.channel()
         self.channel.add_close_callback(self._on_channel_closed)
 
@@ -110,7 +118,9 @@ class Consumer(object):
 
         # Declare the exchange
         self.exchange = await self.channel.declare_exchange(
-            self.exchange_name, self.exchange_type
+            self.exchange_name,
+            self.exchange_type,
+            durable=self.exchange_name == "amq.topic",
         )
 
         # Declare a queue. Let the server allocate a queue name and inform the
@@ -132,6 +142,7 @@ class Consumer(object):
         """ Stop the client """
         # Stop the message queue processing task
         if self.queue:
+            assert isinstance(self._consumer_tag, str)
             await self.queue.cancel(self._consumer_tag)
             self._consumer_tag = None
             await self.queue.delete()
@@ -164,7 +175,7 @@ class Consumer(object):
                 try:
                     maybe_awaitable = self._on_message_handler(payload, message)
                     if inspect.isawaitable(maybe_awaitable):
-                        await maybe_awaitable
+                        await maybe_awaitable  # type: ignore
                 except Exception as exc:
                     logger.exception(f"Problem in user message handler function")
                     return

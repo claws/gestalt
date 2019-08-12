@@ -51,20 +51,61 @@ class RabbitmqTopicPubSubTestCase(asynctest.TestCase):
         if not RABBITMQ_AVAILABLE:
             self.skipTest("RabbitMQ service is not available")
 
-    async def test_topic_pubsub_text(self):
-        """ check text messages can be published and received """
-        amqp_url = AMQP_URL
+    async def test_start_stop_consumer_twice(self):
+        """ check calling start and stop twice on consumer """
+
+        con = Consumer(amqp_url=AMQP_URL, routing_key="position.#")
+        await con.start()
+        await con.start()
+        await con.stop()
+        await con.stop()
+
+    async def test_start_stop_producer_twice(self):
+        """ check calling start and stop twice on producer """
+
+        pro = Producer(amqp_url=AMQP_URL, routing_key="position.update")
+        await pro.start()
+        await pro.start()
+        await pro.stop()
+        await pro.stop()
+
+    async def test_topic_pubsub_no_consumer_handler(self):
+        """ check consumer drops messages when no handler supplied """
         exchange_name = "test"
 
         p = Producer(
-            amqp_url=amqp_url,
+            amqp_url=AMQP_URL,
+            routing_key="position.update",
+            serialization=CONTENT_TYPE_TEXT,
+        )
+
+        c = Consumer(amqp_url=AMQP_URL, routing_key="position.#")
+
+        try:
+            await p.start()
+            await c.start()
+
+            text_msg = "This is a test message"
+            await p.publish_message(text_msg)
+            await asyncio.sleep(0.1)
+
+        finally:
+            await c.stop()
+            await p.stop()
+
+    async def test_topic_pubsub_text(self):
+        """ check text messages can be published and received """
+        exchange_name = "test"
+
+        p = Producer(
+            amqp_url=AMQP_URL,
             exchange_name=exchange_name,
             routing_key="position.update",
         )
 
         on_message_mock = unittest.mock.Mock()
         c = Consumer(
-            amqp_url=amqp_url,
+            amqp_url=AMQP_URL,
             exchange_name=exchange_name,
             routing_key="position.#",
             on_message=on_message_mock,
@@ -94,18 +135,17 @@ class RabbitmqTopicPubSubTestCase(asynctest.TestCase):
 
     async def test_topic_pubsub_json(self):
         """ check JSON messages can be published and received """
-        amqp_url = AMQP_URL
         exchange_name = "test"
 
         p = Producer(
-            amqp_url=amqp_url,
+            amqp_url=AMQP_URL,
             exchange_name=exchange_name,
             routing_key="position.update",
         )
 
         on_message_mock = unittest.mock.Mock()
         c = Consumer(
-            amqp_url=amqp_url,
+            amqp_url=AMQP_URL,
             exchange_name=exchange_name,
             routing_key="position.#",
             on_message=on_message_mock,
@@ -139,18 +179,17 @@ class RabbitmqTopicPubSubTestCase(asynctest.TestCase):
         """ check Protobuf messages can be published and received """
         from position_pb2 import Position
 
-        amqp_url = AMQP_URL
         exchange_name = "test"
 
         p = Producer(
-            amqp_url=amqp_url,
+            amqp_url=AMQP_URL,
             exchange_name=exchange_name,
             routing_key="position.update",
         )
 
         on_message_mock = unittest.mock.Mock()
         c = Consumer(
-            amqp_url=amqp_url,
+            amqp_url=AMQP_URL,
             exchange_name=exchange_name,
             routing_key="position.#",
             on_message=on_message_mock,
@@ -186,18 +225,17 @@ class RabbitmqTopicPubSubTestCase(asynctest.TestCase):
     async def test_topic_pubsub_avro(self):
         """ check Apache Avro messages can be published and received """
 
-        amqp_url = AMQP_URL
         exchange_name = "test"
 
         p = Producer(
-            amqp_url=amqp_url,
+            amqp_url=AMQP_URL,
             exchange_name=exchange_name,
             routing_key="position.update",
         )
 
         on_message_mock = unittest.mock.Mock()
         c = Consumer(
-            amqp_url=amqp_url,
+            amqp_url=AMQP_URL,
             exchange_name=exchange_name,
             routing_key="position.#",
             on_message=on_message_mock,

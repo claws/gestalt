@@ -40,7 +40,7 @@ def build_amqp_url(
     user = user if user else os.getenv("RABBITMQ_USER", "guest")
     password = password if password else os.getenv("RABBITMQ_PASS", "guest")
     host = host if host else os.getenv("RABBITMQ_HOST", "localhost")
-    port = int(port if port else os.getenv("RABBITMQ_PORT", "5672"))
+    port = port if port else int(os.getenv("RABBITMQ_PORT", "5672"))
     virtual_host = virtual_host if virtual_host else "/"
 
     options = []
@@ -98,6 +98,8 @@ def encode_payload(
     # the headers so that it can be used on the receiving side.
     if content_type == CONTENT_TYPE_PROTOBUF:
         serializer = registry.get_serializer(CONTENT_TYPE_PROTOBUF)
+        if not isinstance(headers, dict):
+            raise Exception("Headers must be supplied when using protobuf")
         headers["x-type-id"] = serializer.registry.get_id_for_object(data)
 
     # Avro decoders require awareness of the schema that describes the object.
@@ -106,6 +108,8 @@ def encode_payload(
     elif content_type == CONTENT_TYPE_AVRO:
         if type_identifier is None:
             raise Exception("No Avro id specified!")
+        if not isinstance(headers, dict):
+            raise Exception("Headers must be supplied when using Avro")
         headers["x-type-id"] = type_identifier
 
     serialization_name = registry.type_to_name[content_type]
@@ -118,6 +122,8 @@ def encode_payload(
         raise Exception(f"Error serializing payload to {content_type}: {exc}") from None
 
     if compression:
+        if not isinstance(headers, dict):
+            raise Exception("Headers must be supplied when using compression")
         try:
             headers["compression"], payload = compress(payload, compression)
         except Exception as exc:
@@ -131,9 +137,9 @@ def encode_payload(
 def decode_payload(
     data: bytes,
     compression: Optional[str] = None,
-    content_type: str = None,
-    content_encoding: str = None,
-    type_identifier: int = None,
+    content_type: Optional[str] = None,
+    content_encoding: Optional[str] = None,
+    type_identifier: Optional[int] = None,
 ) -> Any:
     """ Decode a message payload
 
@@ -168,8 +174,11 @@ def decode_payload(
     return payload
 
 
-def decode_message(message: "aio_pika.IncomingMessage"):
-    """ Decode a message payload """
+def decode_message(message):
+    """ Decode a message payload.
+
+    :param message: An aio_pika.IncomingMessage object.
+    """
     payload = decode_payload(
         message.body,
         message.headers.get("compression"),

@@ -199,7 +199,7 @@ class SerializerRegistry(object):
         return content_type, content_encoding, payload
 
     def loads(
-        self, data: bytes, content_type: str, content_encoding: str, **kwargs
+        self, data: bytes, content_type: Optional[str], content_encoding: str, **kwargs
     ) -> Any:
         """ Decode serialized data.
 
