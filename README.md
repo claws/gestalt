@@ -1,6 +1,4 @@
-[![Build Status](https://travis-ci.org/claws/gestalt.svg?branch=master)](https://travis-ci.org/claws/gestalt) [![pypi](https://img.shields.io/pypi/v/gestalt.svg)](https://pypi.python.org/pypi/gestalt)
-[![Documentation Status](https://readthedocs.org/projects/gestalt/badge/?version=latest)](https://gestalt.readthedocs.io/en/latest/?badge=latest) ![License](https://img.shields.io/github/license/claws/gestalt) ![pyversions](https://img.shields.io/pypi/pyversions/gestalt) ![Style](https://img.shields.io/badge/code%20style-black-000000.svg)
-
+[![Build Status](https://travis-ci.org/claws/gestalt.svg?branch=master)](https://travis-ci.org/claws/gestalt) [![pypi](https://img.shields.io/pypi/v/gestalt.svg)](https://pypi.python.org/pypi/gestalt) [![Documentation Status](https://readthedocs.org/projects/gestalt/badge/?version=latest)](https://gestalt.readthedocs.io/en/latest) ![License](https://img.shields.io/github/license/claws/gestalt) ![pyversions](https://img.shields.io/pypi/pyversions/gestalt) ![Style](https://img.shields.io/badge/code%20style-black-000000.svg)
 
 # Gestalt
 
@@ -21,40 +19,40 @@ an organized whole that is perceived as more than the sum of its parts.
 
 The main features of Gestalt are:
 
-- An application runner that simplifies running an asyncio application by
-  performing common setup such as creating an event loop, registering signal
-  handlers, registering a global exception handler and performing graceful
-  shutdown.
+- Inter-process Communications
 
-- High level communications endpoints.
+  - Automatic serialization and compression of message payloads.
+  - Socket endpoints.
 
-  - TCP
+    - TCP
 
-    - Stream
-    - Netstring
-    - Message Type Identifier
+      - Stream
+      - Netstring
+      - Message Type Identifier
 
-  - UDP
+    - UDP
 
-    - Datagram
-    - Message Type Identifier
+      - Datagram
+      - Message Type Identifier
 
-- Support for automatic serialization and compression of message payloads.
+  - Message queuing (i.e. AMQP) components. The Advanced Message
+    Queuing Protocol (AMQP) is an open standard protocol specification for
+    message passing, queuing, routing, reliability and security. One of the
+    most popular implementations of AMQP is RabbitMQ. The Gestalt package
+    provides high level components that support automatic message serialization
+    and compression of message payloads.
 
-- High level message queuing (i.e. AMQP) components. The Advanced Message
-  Queuing Protocol (AMQP) is an open standard protocol specification for
-  message passing, queuing, routing, reliability and security. One of the
-  most popular implementations of AMQP is RabbitMQ. The Gestalt package
-  provides high level components that support automatic message serialization
-  and compression of message payloads.
-
-  - Topic Publisher and Subscriber
-  - Request and Reply (RPC)
+    - Topic Publisher and Subscriber
+    - Request and Reply (RPC)
 
 - A Timer component that simplifies creating periodic calls to a function.
   Timers can be created as single-shot, repeat a specified number of times
   or repeat forever.
 
+- An application runner that simplifies running an asyncio application by
+  performing common setup such as creating an event loop, registering signal
+  handlers, registering a global exception handler and performing graceful
+  shutdown.
 
 ## Installation
 
