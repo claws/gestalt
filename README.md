@@ -1,4 +1,5 @@
-[![Build Status](https://travis-ci.org/claws/gestalt.svg?branch=master)](https://travis-ci.org/claws/gestalt) [![pypi](https://img.shields.io/pypi/v/gestalt.svg)](https://pypi.python.org/pypi/gestalt) ![License](https://img.shields.io/github/license/claws/gestalt) ![pyversions](https://img.shields.io/pypi/pyversions/gestalt) ![Style](https://img.shields.io/badge/code%20style-black-000000.svg)
+[![Build Status](https://travis-ci.org/claws/gestalt.svg?branch=master)](https://travis-ci.org/claws/gestalt) [![pypi](https://img.shields.io/pypi/v/gestalt.svg)](https://pypi.python.org/pypi/gestalt) ![![Documentation Status](https://readthedocs.org/projects/gestalt/badge/?version=latest)](https://gestalt.readthedocs.io/en/latest/?badge=latest) [License](https://img.shields.io/github/license/claws/gestalt) ![pyversions](https://img.shields.io/pypi/pyversions/gestalt) ![Style](https://img.shields.io/badge/code%20style-black-000000.svg)
+
 
 # Gestalt
 
