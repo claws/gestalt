@@ -23,10 +23,11 @@ def run(
     finalize: Coroutine = None,
     loop: AbstractEventLoop = None,
 ):
-    """ Start an event loop and run an optional coroutine.
+    """ Configure the event loop to react to signals and exceptions then
+    run the provided coroutine and loop forever.
 
-    Shutdown the loop when a signal is received or the supplied function
-    explicitly requests the loop to stop.
+    Shutdown the event loop when a signal or exception is received or the
+    supplied function explicitly requests the loop to stop.
 
     This function provides some of the common boilerplate typically needed
     when running asyncio applications. It registers signal handlers that
@@ -38,10 +39,10 @@ def run(
     reported until the event loop is stopped. This approach allows users
     to be notified about these issues as soon as possible.
 
-    :param func: An optional coroutine to run. The coroutine is typically
-      the "main" coroutine from which all other work is spawned. The event
-      loop will continue to run after the supplied coroutine completes.
-      The event loop will still run if no coroutine is supplied.
+    :param func: A coroutine to run before looping forever. This coroutine
+      is typically the "main" coroutine from which all other work is spawned.
+      The event loop will continue to run after the supplied coroutine
+      completes.
 
     :param finalize: An optional coroutine to run when shutting down. Use this
       to perform any graceful cleanup activities such as finalising log files,
@@ -59,16 +60,21 @@ def run(
             f"that takes no arguments, got {func}"
         )
 
-    if not (inspect.isawaitable(finalize) or inspect.iscoroutinefunction(finalize)):
-        raise Exception(
-            "finalize must be a coroutine or a coroutine function "
-            f"that takes no arguments, got {finalize}"
-        )
+    if finalize:
+        if not (inspect.isawaitable(finalize) or inspect.iscoroutinefunction(finalize)):
+            raise Exception(
+                "finalize must be a coroutine or a coroutine function "
+                f"that takes no arguments, got {finalize}"
+            )
 
+    # Use a supplied loop or the default event loop. If the loop is closed
+    # (which can happen in unit tests) then create a new event loop.
     loop = loop or asyncio.get_event_loop()
+    if loop.is_closed():
+        loop = asyncio.new_event_loop()
 
     def signal_handler(loop, sig):
-        logger.debug(f"Caught {sig.name}, stopping.")
+        logger.info(f"Caught {sig.name}, stopping.")
         loop.call_soon(loop.stop)
 
     loop.add_signal_handler(SIGINT, signal_handler, loop, SIGINT)

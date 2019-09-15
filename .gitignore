@@ -111,7 +111,7 @@ venv.bak/
 .vscode/
 
 # Ignore generated protobuf modules
-examples/amq/position_pb2.py
+examples/amq/topic/position_pb2.py
 tests/position_pb2.py
 examples/datagram/mti/position_pb2.py
 examples/stream/mti/position_pb2.py

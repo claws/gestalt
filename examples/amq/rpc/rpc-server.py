@@ -13,8 +13,7 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 
-if __name__ == "__main__":
-
+def get_options():
     parser = argparse.ArgumentParser(description="AMQP RPC Server Example")
     parser.add_argument(
         "--amqp-url",
@@ -45,7 +44,12 @@ if __name__ == "__main__":
         help="Logging level. Default is 'error'.",
     )
 
-    args = parser.parse_args()
+    return parser.parse_args()
+
+
+if __name__ == "__main__":
+
+    args = get_options()
 
     try:
         numeric_level = getattr(logging, args.log_level.upper())

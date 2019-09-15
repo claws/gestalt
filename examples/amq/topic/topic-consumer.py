@@ -5,6 +5,7 @@ from gestalt.amq.consumer import Consumer
 from gestalt.runner import run
 from position_pb2 import Position
 
+from aio_pika import IncomingMessage
 from typing import Any
 
 

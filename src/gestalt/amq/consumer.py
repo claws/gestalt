@@ -100,12 +100,9 @@ class Consumer(object):
         except asyncio.CancelledError:
             logger.info(f"Connection({self.amqp_url}) cancelled")
             return
-        except (AMQPError, ConnectionError) as error:
-            logger.error(f"Connection({self.amqp_url}) {error}")
-            return
-        except Exception as ex:
-            logger.exception(ex)
-            return
+        except (AMQPError, ConnectionError) as exc:
+            logger.error(f"Connection({self.amqp_url}) {exc}")
+            raise Exception(f"Can't connect to {self.amqp_url}") from None
 
         # keep mypy happy by checking connection is no longer None
         assert isinstance(self.connection, Connection)

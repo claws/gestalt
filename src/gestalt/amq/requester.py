@@ -329,8 +329,14 @@ class Requester(object):
         f.set_result(payload)
 
     def _on_request_returned(self, message: ReturnedMessage):
+        """
+        Messages sent to a non-existant queue will be returned to this method
+        which will raise an exception for the appropriate future that was
+        waiting for a response.
+        """
         if message.correlation_id is None:
             logger.warning(f"Returned message had no correlation_id: {message}")
+            return
 
         f = self.futures.pop(message.correlation_id, None)  # type: asyncio.Future
 

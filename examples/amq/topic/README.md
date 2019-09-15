@@ -1,6 +1,6 @@
 The example in this directory uses the AMQP producer and consumer objects
 to demonstrate how they can be used to transfer messages in a variety of
-different format.
+different formats.
 
 The examples may be started in any order. Command line help may be obtained
 by passing the ``-h`` option to the script.
