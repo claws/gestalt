@@ -4,6 +4,128 @@ from gestalt import serialization
 
 
 class SerializationTestCase(unittest.TestCase):
+    def tearDown(self):
+        serialization.registry.set_default("json")
+
+    def test_expected_codecs_are_present(self):
+        codecs = serialization.registry.serializers
+        # Some codecs are always expected be present, confirm they are
+        expected_codecs = (None, "text", "json")
+        for codec_name in expected_codecs:
+            with self.subTest(f"Check that {codec_name} is present"):
+                self.assertIn(codec_name, codecs)
+
+    def test_expected_codec_attributes(self):
+        codecs = serialization.registry.serializers
+        for name, settings in codecs.items():
+            with self.subTest(f"Check that {name} has expected attributes"):
+                for key in ("content_type", "content_encoding", "serializer"):
+                    self.assertTrue(hasattr(settings, key))
+
+    def test_fetch_serializer_by_name_or_type(self):
+        codecs = serialization.registry.serializers
+
+        for name in codecs.keys():
+            with self.subTest(f"Check fetch using '{name}'"):
+                compressor = serialization.registry.get_serializer(name)
+
+        for content_type, _content_encoding, _serializer in codecs.values():
+            with self.subTest(f"Check fetch using '{content_type}'"):
+                compressor = serialization.registry.get_serializer(content_type)
+
+    def test_fetch_codec_by_name_or_type(self):
+        codecs = serialization.registry.serializers
+
+        for name in codecs.keys():
+            with self.subTest(f"Check fetch using '{name}'"):
+                compressor = serialization.registry.get_codec(name)
+
+        for content_type, _content_encoding, _serializer in codecs.values():
+            with self.subTest(f"Check fetch using '{content_type}'"):
+                compressor = serialization.registry.get_codec(content_type)
+
+    def test_register_invalid_serializer(self):
+        class InvalidSerializer(object):
+            pass
+
+        serializer = InvalidSerializer()
+        with self.assertRaises(Exception) as cm:
+            serialization.registry.register(
+                "invalid",
+                serializer,
+                content_type="application/invalid",
+                content_encoding="utf-8",
+            )
+        self.assertIn("Expected an instance of ISerializer", str(cm.exception))
+
+    def test_fetch_codec_with_invalid_name_or_type(self):
+        with self.assertRaises(Exception) as cm:
+            serialization.registry.get_codec("invalid")
+        self.assertIn("Invalid serializer", str(cm.exception))
+
+    def test_fetch_serializer_with_invalid_name_or_type(self):
+        with self.assertRaises(Exception) as cm:
+            serialization.registry.get_serializer("invalid")
+        self.assertIn("Invalid serializer", str(cm.exception))
+
+    def test_loads_with_no_data(self):
+        # No functionality is expected to be executed when no data needs
+        # to be deserialized.
+        serialization.loads(b"", "invalid", "unused-content-type")
+
+    def test_loads_with_invalid_name_or_type(self):
+        with self.assertRaises(Exception) as cm:
+            serialization.loads(b"a", "invalid", "unused-content-type")
+        self.assertIn("Invalid serializer", str(cm.exception))
+
+    def test_dumps_with_invalid_name_or_type(self):
+        with self.assertRaises(Exception) as cm:
+            serialization.dumps(b"", "invalid")
+        self.assertIn("Invalid serializer", str(cm.exception))
+
+    def test_dumps_with_unspecified_name_or_type(self):
+        content_type, content_encoding, payload = serialization.dumps(b"")
+        self.assertEqual(content_type, serialization.CONTENT_TYPE_DATA)
+        self.assertEqual(content_encoding, "binary")
+
+        content_type, content_encoding, payload = serialization.dumps("")
+        self.assertEqual(content_type, serialization.CONTENT_TYPE_TEXT)
+        self.assertEqual(content_encoding, "utf-8")
+
+        test_value = {"a": "a_string", "b": 42}
+        content_type, content_encoding, payload = serialization.dumps(test_value)
+        self.assertEqual(content_type, serialization.CONTENT_TYPE_JSON)
+        self.assertEqual(content_encoding, "utf-8")
+
+    def test_none_serialization_roundtrip(self):
+        # Change default from JSON to None so we test the correct serializer
+        serialization.registry.set_default(None)
+
+        text_data = "The Quick Brown Fox Jumps Over The Lazy Dog"
+        content_type, content_encoding, payload = serialization.dumps(text_data)
+        self.assertIsInstance(payload, bytes)
+        self.assertEqual(content_type, serialization.CONTENT_TYPE_TEXT)
+        self.assertEqual(content_encoding, "utf-8")
+        recovered_data = serialization.loads(
+            payload, content_type=content_type, content_encoding=content_encoding
+        )
+        self.assertEqual(text_data, recovered_data)
+
+        binary_data = text_data.encode()
+        content_type, content_encoding, payload = serialization.dumps(binary_data)
+        self.assertIsInstance(payload, bytes)
+        self.assertEqual(content_type, serialization.CONTENT_TYPE_DATA)
+        self.assertEqual(content_encoding, "binary")
+        recovered_data = serialization.loads(
+            payload, content_type=content_type, content_encoding=content_encoding
+        )
+        self.assertEqual(binary_data, recovered_data)
+
+        # check exception is raised when bytes are not passed in
+        with self.assertRaises(Exception) as cm:
+            content_type, content_encoding, payload = serialization.dumps({})
+        self.assertIn("Can only serialize bytes", str(cm.exception))
+
     def test_text_serialization_roundtrip(self):
         text_data = "The Quick Brown Fox Jumps Over The Lazy Dog"
         content_type, content_encoding, payload = serialization.dumps(text_data, "text")

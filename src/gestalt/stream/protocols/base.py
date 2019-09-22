@@ -5,6 +5,8 @@ import logging
 import os
 import struct
 
+from typing import Tuple
+
 
 logger = logging.getLogger(__name__)
 
@@ -42,18 +44,18 @@ class BaseStreamProtocol(asyncio.Protocol):
         self._on_message_handler = on_message
         self._on_peer_available_handler = on_peer_available
         self._on_peer_unavailable_handler = on_peer_unavailable
-        self._remote_address = None
-        self._local_address = None
+        self._remote_address = None  # type: Optional[Tuple[str, int]]
+        self._local_address = None  # type: Optional[Tuple[str, int]]
         self._peercert = None
         self._identity = b""
 
     @property
-    def raddr(self):
+    def raddr(self) -> Tuple[str, int]:
         """ Return the remote address the protocol is connected with """
         return self._remote_address
 
     @property
-    def laddr(self):
+    def laddr(self) -> Tuple[str, int]:
         """ Return the local address the protocol is using """
         return self._local_address
 
@@ -71,8 +73,19 @@ class BaseStreamProtocol(asyncio.Protocol):
         Called by the event loop when the protocol is connected with a transport.
         """
         self.transport = transport
-        self._remote_address = transport.get_extra_info("peername")
-        self._local_address = transport.get_extra_info("sockname")
+
+        # Depending on the socket family, the address may be a 2-tuple for
+        # IPv4 or a 4-tuple for IPv6. Currently the library is supporting
+        # IPv4 only. # AF_INET6 returns a four-tuple (host, port, flowinfo,
+        # scopeid) which needs to be converted to the expected 2-tuple.
+        def get_host_port(info) -> Tuple[str, int]:
+            if len(info) == 4:
+                host, port, flowinfo, scopeid = info
+                info = (host, port)
+            return info
+
+        self._remote_address = get_host_port(transport.get_extra_info("peername"))
+        self._local_address = get_host_port(transport.get_extra_info("sockname"))
         self._peercert = transport.get_extra_info("peercert")
         self._identity = binascii.hexlify(os.urandom(5))
 

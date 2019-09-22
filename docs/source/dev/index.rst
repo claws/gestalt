@@ -111,7 +111,7 @@ To simply check if the style formatting would make any changes use the
 
 .. code-block:: console
 
-    (venv) $ make style.check
+    (venv) $ make check-style
 
 
 .. _annotations-label:

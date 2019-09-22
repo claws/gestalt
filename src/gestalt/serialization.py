@@ -5,7 +5,7 @@ import itertools
 import json
 
 from collections import namedtuple
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, Tuple
 
 try:
     import avro
@@ -65,7 +65,8 @@ class ISerializer(abc.ABC):
 class SerializerRegistry(object):
     """ This registry keeps track of serialization strategies.
 
-    A content-type string is mapped to an encoder and decoder.
+    A convenience name or the specific content-type string can be used to
+    reference a specific serializer that is capable of encoding and decoding.
     """
 
     def __init__(self):
@@ -104,7 +105,7 @@ class SerializerRegistry(object):
         self.type_to_name[content_type] = name
         self.name_to_type[name] = content_type
 
-    def _set_default_serializer(self, name_or_type: str):
+    def set_default(self, name_or_type: str):
         """ Set the default serialization method used by this library.
 
         :param name_or_type: a string specifying the serialization strategy.
@@ -114,41 +115,49 @@ class SerializerRegistry(object):
         Raises:
             Exception: If the serialization method requested is not available.
         """
-        self._default_codec = self._name_or_type_to_name(name_or_type)
+        self._default_codec = self._resolve(name_or_type)
 
-    def get_supported_serializers(self):
+    @property
+    def serializers(self):
         """ Return a dict of the available serializers (codecs) """
         return self._serializers
 
-    def get_codec(self, name_or_type):
-        """ Return a codec tuple matching the supplied name.
-
-        :param name_or_type: a string specifying the serialization strategy.
-          The string may be the alias name (e.g. json) or the mime-type
-          (e.g. application/json).
-        """
-        name = self._name_or_type_to_name(name_or_type)
-        return self._serializers[name]
-
     def get_serializer(self, name_or_type: str):
-        """ Return a specific serializer from the registry.
+        """ Return a specific serializer.
 
-        :param name_or_type: a string specifying the serialization strategy.
-          The string may be the alias name (e.g. json) or the mime-type
-          (e.g. application/json).
+        :param name_or_type: a string specifying the serialization strategy
+          to apply to the data (e.g. ``json``). The string may be the
+          convenience name (e.g. json) or the mime-type (e.g. application/json).
+
+        :returns: A serializer object that can encode and decode bytes
+          using the named strategy.
         """
-        name = self._name_or_type_to_name(name_or_type)
+        name = self._resolve(name_or_type)
         return self._serializers[name].serializer
 
-    def dumps(self, data: Any, serialization: str = None, **kwargs):
+    def get_codec(self, name_or_type: str):
+        """ Return codec attributes for a specific serializer.
+
+        :param name_or_type: a string specifying the serialization strategy
+          to apply to the data (e.g. ``json``). The string may be the
+          convenience name (e.g. json) or the mime-type (e.g. application/json).
+
+        :returns: A codec named tuple.
+        """
+        name = self._resolve(name_or_type)
+        return self._serializers[name]
+
+    def dumps(
+        self, data: Any, name_or_type: str = None, **kwargs
+    ) -> Tuple[Optional[str], str, bytes]:
         """ Encode data.
 
         Serialize a data structure into a bytes object suitable for sending
-        as an AMQP message body.
+        as a message body.
 
         :param data: The message data to send.
 
-        :param serialization: A string representing the serialization strategy
+        :param name_or_type: A string representing the serialization strategy
           to apply to the data (e.g. ``json``, etc). If not specified then a
           best effort guess will be made. If data is a string then text will
           be used, if the data is bytes then data will be used, otherwise the
@@ -167,14 +176,12 @@ class SerializerRegistry(object):
         Raises:
             Exception: If the serialization method requested is not available.
         """
-        if serialization:
+        if name_or_type:
 
-            if serialization not in self._serializers:
-                raise Exception(f"Invalid serializer {serialization}, can't encode.")
+            if name_or_type not in self._serializers:
+                raise Exception(f"Invalid serializer {name_or_type}, can't encode.")
 
-            content_type, content_encoding, serializer = self._serializers[
-                serialization
-            ]
+            content_type, content_encoding, serializer = self._serializers[name_or_type]
             payload = serializer.encode(data, **kwargs)
 
         else:
@@ -199,7 +206,11 @@ class SerializerRegistry(object):
         return content_type, content_encoding, payload
 
     def loads(
-        self, data: bytes, content_type: Optional[str], content_encoding: str, **kwargs
+        self,
+        data: bytes,
+        content_type: Optional[str],
+        content_encoding: Optional[str],
+        **kwargs,
     ) -> Any:
         """ Decode serialized data.
 
@@ -231,18 +242,13 @@ class SerializerRegistry(object):
 
         if data:
 
-            serialization = self.type_to_name[content_type]
-            if serialization not in self._serializers:
-                raise Exception(
-                    f"Invalid serializer {serialization} for {content_type}, can't decode."
-                )
-
-            _ct, _ce, serializer = self._serializers[serialization]
+            name = self._resolve(content_type)
+            _ct, _ce, serializer = self._serializers[name]
             return serializer.decode(data, **kwargs)
 
         return data
 
-    def _name_or_type_to_name(self, x: str) -> str:
+    def _resolve(self, x: str) -> str:
         """ Return a serializer alias string.
 
         :param x: a string specifying the serialization strategy.
@@ -254,7 +260,7 @@ class SerializerRegistry(object):
         elif x in self.type_to_name:
             return self.type_to_name[x]
         else:
-            raise Exception("Invalid serializer '{name}'")
+            raise Exception(f"Invalid serializer '{x}'")
 
 
 def register_none(registry: SerializerRegistry):
@@ -264,7 +270,7 @@ def register_none(registry: SerializerRegistry):
         def encode(self, data, **kwargs):
             """ Returns serialized data as a bytes object. """
             if not isinstance(data, bytes):
-                raise Exception(f"Can only serialize bytes type, got {type(data)}")
+                raise Exception(f"Can only serialize bytes, got {type(data)}")
             return data
 
         def decode(self, data, **kwargs):
@@ -281,12 +287,12 @@ def register_text(registry: SerializerRegistry) -> None:
     """ Register an encoder/decoder for TEXT serialization. """
 
     class TextSerializer(ISerializer):
-        def encode(self, text: str, **kwargs) -> bytes:
+        def encode(self, data, **kwargs) -> bytes:
             """ Encode a string and return a :class:`bytes` object.
 
             :returns: a serialized message as a bytes object.
             """
-            return text.encode("utf-8")
+            return data.encode("utf-8")
 
         def decode(self, data: bytes, **kwargs) -> str:
             """ Decode *data* from :class:`bytes` to the original data structure.
@@ -321,8 +327,7 @@ def register_json(registry: SerializerRegistry) -> None:
 
             :returns: A Python object.
             """
-            data = data if isinstance(data, str) else data.decode("utf-8")
-            return json.loads(data)
+            return json.loads(data if isinstance(data, str) else data.decode("utf-8"))
 
     serializer = JsonSerializer()
     registry.register(
@@ -562,29 +567,31 @@ def register_protobuf(registry: SerializerRegistry, object_registry=None) -> Non
                 """
                 self.registry = object_registry if object_registry else ObjectRegistry()
 
-            def encode(self, obj: Message, **kwargs) -> bytes:
+            def encode(self, obj, **kwargs):
                 """ Encode the given object and return a :class:`bytes` object.
 
                 :param obj: A Protobuf object to serialize into bytes.
 
                 :returns: a serialized message as a bytes object.
                 """
+                assert isinstance(obj, Message)
                 return obj.SerializeToString()
 
-            def decode(self, data: bytes, type_identifier: str, **kwargs) -> Message:
+            def decode(self, data: bytes, **kwargs):
                 """ Decode *data* from :class:`bytes` to the original data structure.
 
                 :param data: a bytes object containing a serialized message.
 
-                :param type_identifier: An integer that can be used to uniquely identify
-                  the Protobuf message. The identifier is used to find the matching
-                  class object and instantiate it. The data is then decoded into the
-                  new message instance.
+                :keywords type_identifier: An integer that can be used to uniquely
+                  identify the Protobuf message. The identifier is used to find the
+                  matching class object and instantiate it. The data is then decoded
+                  into the new message instance.
 
                 :returns: A Protobuf message object.
 
                 :raises: KeyError if matching symbol type is not found.
                 """
+                type_identifier = kwargs.get("type_identifier")
                 try:
                     obj = self.registry.get_object_by_id(type_identifier)
                 except KeyError:
@@ -613,7 +620,7 @@ def initialize(registry: SerializerRegistry):
     register_avro(registry)
     register_protobuf(registry)
 
-    registry._set_default_serializer("json")
+    registry.set_default("json")
 
 
 """

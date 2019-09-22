@@ -76,14 +76,13 @@ if __name__ == "__main__":
             counter += 1
 
             request_msg = dict(sequence_number=counter, utc=True)
+            # For demonstration purposes randomly choose to use an invalid
+            # service name to show that the message gets returned and raises
+            # a DeliveryError exception.
+            service_name = (
+                r.service_name if random.random() < 0.8 else "invalid_service_name"
+            )
             try:
-                # For demonstration purposes randomly choose to use an invalid
-                # service name to show that the message gets returned and raises
-                # a DeliveryError exception.
-                service_name = (
-                    r.service_name if random.random() < 0.8 else "invalid_service_name"
-                )
-
                 logger.info(f"Sending request {request_msg} to {service_name}")
                 response_msg = await r.request(
                     request_msg, expiration=2, service_name=service_name

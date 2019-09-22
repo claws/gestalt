@@ -21,8 +21,8 @@ install:
   - make generate
   - pip install .[amq,protobuf,msgpack,avro,brotli,snappy,yaml]
 script:
-  - make style-check
-  # The docs rule depends on the tests (which are run with code coverage)
-  # so there is no need to explicitly run the 'make test' rule.
+  - make check-style
+  - make-check-types
+  - make check-coverage
   - make docs
   - make dist

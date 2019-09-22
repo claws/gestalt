@@ -8,7 +8,7 @@ import socket
 from ssl import SSLContext
 from gestalt import serialization
 from gestalt.stream.protocols.base import BaseStreamProtocol
-from typing import Any, List, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Type
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +47,7 @@ class StreamEndpoint(object):
     # be instantiated to handle a connection with a peer. The protocol is
     # expected to inherit from the
     # :ref:`gestalt.stream.protocols.base.BaseStreamProtocol` interface.
-    protocol_class = None
+    protocol_class: Optional[Type[BaseStreamProtocol]] = None
 
     is_server: bool = False
 
@@ -59,11 +59,11 @@ class StreamEndpoint(object):
         on_peer_available=None,
         on_peer_unavailable=None,
         content_type: str = serialization.CONTENT_TYPE_DATA,
-        backoff_maximum: int = 10,
+        backoff_maximum: float = 10.0,
         loop=None,
         **kwargs,
-    ):
-        """ Initialise Endpoint
+    ) -> None:
+        """ Initialise stream endpoint
 
         :param on_message: A callback function that will be called when a
           protocol extracts a message from the stream.
@@ -72,28 +72,29 @@ class StreamEndpoint(object):
           been started. This callback simply notifies that the endpoint has been
           started and does not necessarily indicate that the endpoint is ready to
           send and receive messages. Use the `on_peer_available` method to know
-          when the endpoint is ready to send and receive messages.
+          when the endpoint is ready to send or receive messages.
 
         :param on_stopped: A callback that will be called when the endpoint has
           been stopped.
 
         :param on_peer_available: A callback function that will be called when
           the protocol is connected with a transport. In this state the protocol
-          can send and receive messages.
+          can send or receive messages.
 
         :param on_peer_unavailable: A callback function that will be called when
           the protocol has lost the connection with its transport. In this state
           the protocol can not send or receive messages.
 
-        :param content_type: A string argument that specifies the message format.
-          from this a serialization name will be retrieved. This will be used to
-          convert messages to and from wire format. Default value is
-          CONTENT_TYPE_DATA which is only suitable for sending bytes data that
-          has been serialized externally from the endpoint.
+        :param content_type: A string argument that specifies the mime-type of
+          message data. From this a serialization name will be resolved. This
+          will be used to convert messages to and from wire format. Default
+          value is :const:`serialization.CONTENT_TYPE_DATA` which is suitable
+          for sending bytes data that has already been serialized before being
+          passed to the endpoint.
 
         :param backoff_maximum: The maximum interval between reconnect attempts
           by an endpoint operating in client mode. Reconnect attempts backoff
-          exponentially up to this maximum value. Default value is 10 seconds.
+          exponentially up to this maximum value. Default value is 10.0 seconds.
         """
         self.loop = loop or asyncio.get_event_loop()
         self._on_message_handler = on_message
@@ -102,10 +103,13 @@ class StreamEndpoint(object):
         self._on_peer_available_handler = on_peer_available
         self._on_peer_unavailable_handler = on_peer_unavailable
 
-        self.content_type = content_type
+        codec = serialization.registry.get_codec(content_type)
+        self.content_type = codec.content_type
         self.serialization_name = serialization.registry.type_to_name[content_type]
-        codec = serialization.registry.get_codec(self.serialization_name)
         self.content_encoding = codec.content_encoding
+
+        if self.protocol_class is None:
+            raise Exception("protocol_class is not defined")
 
         if not issubclass(self.protocol_class, BaseStreamProtocol):
             raise Exception(
@@ -116,23 +120,23 @@ class StreamEndpoint(object):
             StreamEndpointModes.Server if self.is_server else StreamEndpointModes.Client
         )
         self._mode_str = self._mode.name
-        self._peers = {}
+        self._peers = {}  # type: Dict[bytes, BaseStreamProtocol]
         self._addr = ""
         self._port = 0
-        self._ssl = None
+        self._ssl = None  # type: Optional[SSLContext]
 
         self._running = False
 
         # Client specific attributes
         self._reconnect = False
-        self._backoff = 0
+        self._backoff = 0.0
         self._backoff_maximum = backoff_maximum
-        self._backoff_task = None
-        self._connect_task = None
+        self._backoff_task = None  # type: Optional[asyncio.Task]
+        self._connect_task = None  # type: Optional[asyncio.Task]
 
         # Server specific attributes
-        self._listener = None
-        self._listener_addr = None
+        self._listener = None  # type: Optional[asyncio.AbstractServer]
+        self._listener_addr = None  # type: Optional[Tuple[str, int]]
 
     @property
     def mode(self):
@@ -176,7 +180,7 @@ class StreamEndpoint(object):
         addr: str = "",
         port: int = 0,
         family: int = socket.AF_INET,
-        ssl: SSLContext = None,
+        ssl: Optional[SSLContext] = None,
         reconnect: bool = True,
     ) -> None:
         """ Start endpoint.
@@ -263,7 +267,7 @@ class StreamEndpoint(object):
         self._port = 0
         self._family = 0
         self._ssl = None
-        self._backoff = 0
+        self._backoff = 0.0
         self._running = False
 
         # Don't let poor user code break the library
@@ -336,15 +340,17 @@ class StreamEndpoint(object):
         logger.debug(f"Starting to listen on {addr}:{port}")
 
         try:
-            self._listener = await self.loop.create_server(
+            self._listener = await self.loop.create_server(  # type: ignore
                 self._protocol_factory, host=addr, port=port, family=family, ssl=ssl
             )
 
-            _laddr = self._listener.sockets[0].getsockname()
+            assert self._listener is not None
+            _laddr = self._listener.sockets[0].getsockname()  # type: ignore
             # Depending on the socket family, the address may be a 2-tuple for
-            # IPv4 or a 4-tuple for IPv6.
+            # IPv4 or a 4-tuple for IPv6. Currently the library is supporting
+            # IPv4 only. # AF_INET6 returns a four-tuple (host, port, flowinfo,
+            # scopeid) which needs to be converted to the expected 2-tuple.
             if len(_laddr) == 4:
-                # AF_INET6 returns a four-tuple (host, port, flowinfo, scopeid)
                 host, port, flowinfo, scopeid = _laddr
                 _laddr = (host, port)
             self._listener_addr = _laddr
@@ -414,7 +420,7 @@ class StreamEndpoint(object):
 
         _protocol = None
         try:
-            _transport, _protocol = await self.loop.create_connection(
+            _transport, _protocol = await self.loop.create_connection(  # type: ignore
                 self._protocol_factory, host=addr, port=port, ssl=ssl, family=family
             )
             # Upon a successful connection the protocol will call the

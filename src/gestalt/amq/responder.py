@@ -16,7 +16,7 @@ from gestalt.serialization import loads
 
 from asyncio import AbstractEventLoop
 from aio_pika import Connection, Channel, Exchange, Queue
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, Optional
 
 MessageHandlerType = Callable[[Any, IncomingMessage], None]
 
@@ -35,17 +35,16 @@ class Responder(object):
 
     def __init__(
         self,
-        # app_id: str,
         amqp_url: str = "",
         exchange_name: str = "",
         exchange_type: ExchangeType = ExchangeType.DIRECT,
         service_name: str = "",
-        reconnect_interval: int = 1.0,
+        reconnect_interval: float = 1.0,
         prefetch_count: int = 1,
         serialization: str = None,
         compression: str = None,
         dlx_name: str = "rpc.dlx",
-        on_request: MessageHandlerType = None,
+        on_request: Optional[MessageHandlerType] = None,
         loop: AbstractEventLoop = None,
     ) -> None:
         """
@@ -82,8 +81,10 @@ class Responder(object):
         :param on_request: a user function that will be called whenever a new
           request message is received. The callback is expected to take two
           arguments which are a message payload (automatically decompressed
-          and deserialized) and a IncomingMessage object which
-          provides the handler function with access to message headers.
+          and deserialized) and a IncomingMessage object which provides the
+          handler function with access to message headers. The function is
+          expected to return a response object that will be returned to the
+          sender.
 
         :param loop: The event loop to run in.
 
@@ -95,15 +96,19 @@ class Responder(object):
         self.service_name = service_name
         self.serialization = serialization
         self.compression = compression
-        self._request_handler = on_request
+        if on_request is None:
+            raise Exception("A response handler must be provided")
+        self._request_handler = on_request  # type: MessageHandlerType
 
         self.reconnect_interval = reconnect_interval
         self.prefetch_count = prefetch_count
-        self.connection = None
-        self.channel = None
-        self.exchange = None
+        self.connection = None  # type: Optional[Connection]
+        self.channel = None  # type: Optional[Channel]
+        self.exchange = None  # type: Optional[Exchange]
         self.dlx_name = dlx_name
-        self.queue = None
+        self.queue = None  # type: Optional[Queue]
+
+        self._consumer_tag = None  # type: Optional[str]
 
     async def start(self) -> None:
         """ Start the client """
@@ -127,11 +132,9 @@ class Responder(object):
             logger.exception(ex)
             return
 
-        # keep mypy happy by checking connection is no longer None
-        assert isinstance(self.connection, Connection)
-
-        # Creating a channel
+        assert self.connection is not None
         self.channel = await self.connection.channel()
+        assert self.channel is not None
         self.channel.add_close_callback(self._on_channel_closed)
 
         # Specify the maximum number of messages being processed.
@@ -159,6 +162,7 @@ class Responder(object):
             logger.debug(
                 f"binding responder queue to exchange {self.exchange_name} with routing-key={self.service_name}"
             )
+            assert self.queue is not None
             await self.queue.bind(self.exchange, routing_key=self.service_name)
 
         self._consumer_tag = await self.queue.consume(self._on_request_message)
@@ -167,6 +171,7 @@ class Responder(object):
         """ Stop the client """
         # Stop the message queue processing task
         if self.queue:
+            assert self._consumer_tag is not None
             await self.queue.cancel(self._consumer_tag)
             self._consumer_tag = None
             await self.queue.delete()
@@ -198,15 +203,16 @@ class Responder(object):
             return
 
         try:
+            assert self._request_handler is not None
             response = self._request_handler(payload, message)
             if inspect.isawaitable(response):
-                response = await response
+                response = await response  # type: ignore
         except Exception as exc:
             logger.exception(f"Problem in user message handler function")
             await message.reject(requeue=False)
             return
 
-        headers = {}
+        headers = {}  # type: Dict[str, str]
 
         try:
             payload, content_type, content_encoding = utils.encode_payload(
@@ -220,7 +226,7 @@ class Responder(object):
             await message.reject(requeue=False)
             return
 
-        response_message = Message(
+        response_message = Message(  # type: ignore
             body=payload,
             content_type=content_type,
             content_encoding=content_encoding,
@@ -233,6 +239,7 @@ class Responder(object):
         try:
             # Responses should always use the default exchange to route the
             # message to the queue created by the consumer.
+            assert self.channel is not None
             await self.channel.default_exchange.publish(
                 response_message, message.reply_to, mandatory=False
             )

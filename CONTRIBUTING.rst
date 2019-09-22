@@ -43,17 +43,22 @@ is as follows.
 
   .. code-block:: console
 
-      $ make venv
-      $ source path/to/<venv-name>/bin/activate
+      $ python3 -m venv venv
+      $ source venv/bin/activate
+      (venv) $ pip install pip -U
       (venv) $
-
-  The rule creates the virtual environment outside the project directory so
-  that it never accidentally gets added to the change set.
 
   .. note::
 
       (venv) is used to indicate when the commands should be run within the
       virtual environment containing the development dependencies.
+
+* Install the gestalt package as an editable install along with development
+  extras and optional extras.
+
+  .. code-block:: console
+
+      (venv) $ pip install -e .[develop,amq,protobuf,msgpack,avro,brotli,snappy,yaml]
 
 * Develop fix or enhancement:
 
@@ -91,14 +96,14 @@ is as follows.
 
         (venv) $ make check-coverage
 
-    Review the output produced in ``docs/source/coverage/coverage.html``. Add
+    Review the output produced in ``docs/source/_static/coverage/index.html``. Add
     additional test steps, where practical, to improve coverage.
 
-  * The change should be style compliant. Perform style check.
+  * The change should be style compliant. Apply style formatter.
 
     .. code-block:: console
 
-        (venv) $ make check-style
+        (venv) $ make style
 
     See the :ref:`style-compliance-label` section for more information.
 
@@ -133,7 +138,7 @@ is as follows.
   A pull request should preferably only have one commit upon the current
   master HEAD, (via rebases and squash).
 
-* Submit a pull request through the service website (e.g. Github, Gitlab).
+* Submit a pull request through the service website (i.e. Github).
 
 * Check automated continuous integration steps all pass. Fix any problems
   if necessary and update the pull request.

@@ -3,6 +3,8 @@ import binascii
 import logging
 import os
 
+from typing import Tuple
+
 
 logger = logging.getLogger(__name__)
 
@@ -34,8 +36,8 @@ class BaseDatagramProtocol(asyncio.DatagramProtocol):
         self._on_peer_available_handler = on_peer_available
         self._on_peer_unavailable_handler = on_peer_unavailable
         self._identity = b""
-        self._remote_address = None
-        self._local_address = None
+        self._remote_address = None  # type: Optional[Tuple[str, int]]
+        self._local_address = None  # type: Optional[Tuple[str, int]]
         self.transport = None
 
     @property
@@ -44,12 +46,12 @@ class BaseDatagramProtocol(asyncio.DatagramProtocol):
         return self._identity
 
     @property
-    def raddr(self):
+    def raddr(self) -> Tuple[str, int]:
         """ Return the remote address the protocol is connected with """
         return self._remote_address
 
     @property
-    def laddr(self):
+    def laddr(self) -> Tuple[str, int]:
         """ Return the local address the protocol is using """
         return self._local_address
 

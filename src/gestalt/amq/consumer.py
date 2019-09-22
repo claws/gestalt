@@ -104,10 +104,9 @@ class Consumer(object):
             logger.error(f"Connection({self.amqp_url}) {exc}")
             raise Exception(f"Can't connect to {self.amqp_url}") from None
 
-        # keep mypy happy by checking connection is no longer None
-        assert isinstance(self.connection, Connection)
-
+        assert self.connection is not None
         self.channel = await self.connection.channel()
+        assert self.channel is not None
         self.channel.add_close_callback(self._on_channel_closed)
 
         # Specify the maximum number of messages being processed.
@@ -129,6 +128,7 @@ class Consumer(object):
         logger.debug(
             f"binding consumer queue to exchange {self.exchange_name} with routing-key={self.routing_key}"
         )
+        assert self.queue is not None
         await self.queue.bind(self.exchange, routing_key=self.routing_key)
 
         # Keep a reference to the queue message processing task to so it

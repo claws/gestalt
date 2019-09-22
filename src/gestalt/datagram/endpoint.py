@@ -4,7 +4,7 @@ import socket
 
 from gestalt import serialization
 from gestalt.datagram.protocols.base import BaseDatagramProtocol
-from typing import Any, List, Sequence, Tuple
+from typing import Any, List, Optional, Sequence, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +20,7 @@ class DatagramEndpoint(object):
     # Concrete endpoint implementations must define the protocol object to
     # be instantiated to handle a connection. The protocol is
     # expected to inherit from the
-    # :ref:`gestalt.comms.datagram.protocols.base.BaseDatagramProtocol` interface.
+    # :ref:`gestalt.datagram.protocols.base.BaseDatagramProtocol` interface.
     protocol_class = BaseDatagramProtocol
 
     def __init__(
@@ -34,6 +34,35 @@ class DatagramEndpoint(object):
         loop=None,
         **kwargs,
     ):
+        """ Initialise datagram endpoint
+
+        :param on_message: A callback function that will be called when a
+          protocol extracts a message.
+
+        :param on_started: A callback that will be called when the endpoint has
+          been started. This callback simply notifies that the endpoint has been
+          started and does not necessarily indicate that the endpoint is ready to
+          send and receive messages. Use the `on_peer_available` method to know
+          when the endpoint is ready to send or receive messages.
+
+        :param on_stopped: A callback that will be called when the endpoint has
+          been stopped.
+
+        :param on_peer_available: A callback function that will be called when
+          the protocol is connected with a transport. In this state the protocol
+          can send or receive messages.
+
+        :param on_peer_unavailable: A callback function that will be called when
+          the protocol has lost the connection with its transport. In this state
+          the protocol can not send or receive messages.
+
+        :param content_type: A string argument that specifies the mime-type of
+          message data. From this a serialization name will be resolved. This
+          will be used to convert messages to and from wire format. Default
+          value is :const:`serialization.CONTENT_TYPE_DATA` which is suitable
+          for sending bytes data that has already been serialized before being
+          passed to the endpoint.
+        """
         self.loop = loop or asyncio.get_event_loop()
         self._on_message_handler = on_message
         self._on_started_handler = on_started
@@ -41,9 +70,9 @@ class DatagramEndpoint(object):
         self._on_peer_available_handler = on_peer_available
         self._on_peer_unavailable_handler = on_peer_unavailable
 
-        self.content_type = content_type
+        codec = serialization.registry.get_codec(content_type)
+        self.content_type = codec.content_type
         self.serialization_name = serialization.registry.type_to_name[content_type]
-        codec = serialization.registry.get_codec(self.serialization_name)
         self.content_encoding = codec.content_encoding
 
         if not issubclass(self.protocol_class, BaseDatagramProtocol):
@@ -53,7 +82,7 @@ class DatagramEndpoint(object):
 
         self._running = False
         self._remote = False
-        self._protocol = None
+        self._protocol = None  # type: Optional[BaseDatagramProtocol]
 
     @property
     def running(self):
@@ -68,12 +97,20 @@ class DatagramEndpoint(object):
     @property
     def bindings(self) -> Sequence[Tuple[str, int]]:
         """ Return a server endpoint's bound addresses. """
-        return [self._protocol.laddr] if self.running else []
+        if self.running:
+            assert self._protocol is not None
+            return [self._protocol.laddr]
+        else:
+            return []
 
     @property
     def connections(self) -> Sequence[Tuple[str, int]]:
         """ Return a client endpoint's connect addresses """
-        return [self._protocol.raddr] if self.running else []
+        if self.running:
+            assert self._protocol is not None
+            return [self._protocol.raddr]
+        else:
+            return []
 
     def register_message(self, type_identifier: int, obj: Any):
         """

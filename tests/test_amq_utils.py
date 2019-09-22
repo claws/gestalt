@@ -66,12 +66,12 @@ class RabbitmqUtilitiesTestCase(unittest.TestCase):
 
     def test_text_payload_roundtrip(self):
         TEXT_DATA = "The Quick Brown Fox Jumps Over The Lazy Dog"
-        codecs = compression.registry.get_supported_codecs()
+        codecs = compression.registry.compressors
         compression_names = list(codecs.keys())
 
         for compression_name in compression_names:
             with self.subTest(f"Check compressing payload using {compression_name}"):
-                compression_mime_type = codecs[compression_name]["content_type"]
+                compression_mime_type = codecs[compression_name].content_type
                 headers = {}
                 payload, content_type, content_encoding = utils.encode_payload(
                     TEXT_DATA,
@@ -92,12 +92,12 @@ class RabbitmqUtilitiesTestCase(unittest.TestCase):
 
     def test_json_payload_roundtrip(self):
         JSON_DATA = dict(latitude=130.0, longitude=-30.0, altitude=50.0)
-        codecs = compression.registry.get_supported_codecs()
+        codecs = compression.registry.compressors
         compression_names = list(codecs.keys())
 
         for compression_name in compression_names:
             with self.subTest(f"Check compressing payload using {compression_name}"):
-                compression_mime_type = codecs[compression_name]["content_type"]
+                compression_mime_type = codecs[compression_name].content_type
                 headers = {}
                 payload, content_type, content_encoding = utils.encode_payload(
                     JSON_DATA,
@@ -139,12 +139,12 @@ class RabbitmqUtilitiesTestCase(unittest.TestCase):
     @unittest.skipUnless(serialization.have_yaml, "requires yaml")
     def test_yaml_payload_roundtrip(self):
         YAML_DATA = dict(latitude=130.0, longitude=-30.0, altitude=50.0)
-        codecs = compression.registry.get_supported_codecs()
+        codecs = compression.registry.compressors
         compression_names = list(codecs.keys())
 
         for compression_name in compression_names:
             with self.subTest(f"Check compressing payload using {compression_name}"):
-                compression_mime_type = codecs[compression_name]["content_type"]
+                compression_mime_type = codecs[compression_name].content_type
                 headers = {}
                 payload, content_type, content_encoding = utils.encode_payload(
                     YAML_DATA,
@@ -216,14 +216,14 @@ class RabbitmqUtilitiesTestCase(unittest.TestCase):
         type_identifier = serializer.registry.register_message(message_schema)
 
         AVRO_DATA = dict(latitude=130.0, longitude=-30.0, altitude=50.0)
-        codecs = compression.registry.get_supported_codecs()
+        codecs = compression.registry.compressors
         compression_names = list(codecs.keys())
 
         # Avro is already a compact binary format so there may not be much
         # reason to compress it further, but whatever...
         for compression_name in compression_names:
             with self.subTest(f"Check compressing payload using {compression_name}"):
-                compression_mime_type = codecs[compression_name]["content_type"]
+                compression_mime_type = codecs[compression_name].content_type
 
                 # When content-type is AVRO a type identifier must be supplied.
                 # Confirm an exception is raised if it is not provided.

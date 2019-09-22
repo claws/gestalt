@@ -18,9 +18,9 @@ logger = logging.getLogger(__name__)
 
 
 def run(
-    func: Optional[Awaitable] = None,
+    func: Optional[Awaitable[None]] = None,
     *,
-    finalize: Coroutine = None,
+    finalize: Optional[Awaitable[None]] = None,
     loop: AbstractEventLoop = None,
 ):
     """ Configure the event loop to react to signals and exceptions then
@@ -54,11 +54,12 @@ def run(
     """
     logger.debug("Application runner starting")
 
-    if not (inspect.isawaitable(func) or inspect.iscoroutinefunction(func)):
-        raise Exception(
-            "func must be a coroutine or a coroutine function "
-            f"that takes no arguments, got {func}"
-        )
+    if func:
+        if not (inspect.isawaitable(func) or inspect.iscoroutinefunction(func)):
+            raise Exception(
+                "func must be a coroutine or a coroutine function "
+                f"that takes no arguments, got {func}"
+            )
 
     if finalize:
         if not (inspect.isawaitable(finalize) or inspect.iscoroutinefunction(finalize)):
@@ -87,15 +88,18 @@ def run(
     loop.set_exception_handler(exception_handler)
 
     try:
-        if inspect.iscoroutinefunction(func):
-            func = func()
-        loop.create_task(func)
+        if func:
+            if inspect.iscoroutinefunction(func):
+                func = func()  # type: ignore
+            assert func is not None
+            loop.create_task(func)
         loop.run_forever()
     finally:
         logger.debug("Application shutdown sequence starting")
         if finalize:
             if inspect.iscoroutinefunction(finalize):
-                finalize = finalize()
+                finalize = finalize()  # type: ignore
+            assert finalize is not None
             loop.run_until_complete(finalize)
 
         # Shutdown any outstanding tasks that are left running

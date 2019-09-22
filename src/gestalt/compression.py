@@ -2,6 +2,7 @@
 
 import abc
 import zlib
+from collections import namedtuple
 from typing import Any, Callable, Dict, Optional, Tuple, Union
 
 try:
@@ -32,9 +33,7 @@ try:
 except ImportError:
     have_snappy = False
 
-
-CompressorType = Callable[[bytes], bytes]
-DecompressorType = Callable[[bytes], bytes]
+CodecType = Callable[[bytes], bytes]
 
 COMPRESSION_NONE = "none"
 COMPRESSION_GZIP = "applications/x-gzip"
@@ -46,6 +45,9 @@ COMPRESSION_ZLIB = "application/zlib"
 COMPRESSION_DEFLATE = "application/deflate"
 
 
+codec = namedtuple("codec", ("content_type", "compressor"))
+
+
 class ICompressor(abc.ABC):
     """
     This class represents the base interface for a compressor.
@@ -53,7 +55,7 @@ class ICompressor(abc.ABC):
 
     @abc.abstractmethod  # pragma: no branch
     def compress(self, data):
-        """ Returns compressed data as a bytes object. """
+        """ Returns compressed data """
 
     @abc.abstractmethod  # pragma: no branch
     def decompress(self, data):
@@ -63,155 +65,97 @@ class ICompressor(abc.ABC):
 class CompressorRegistry(object):
     """ This registry keeps track of compression strategies.
 
-    A content-type string is mapped to an encoder and decoder.
+    A convenience name or the specific content-type string can be used to
+    reference a specific compressor that is capable of encoding and decoding.
     """
 
     def __init__(self) -> None:
-        self._encoders = {}  # type: Dict[Optional[str], CompressorType]
-        self._decoders = {}  # type: Dict[Optional[str], DecompressorType]
-        self._supported_codecs = {}  # type: Dict[Optional[str], Dict]
-        self._default_codec = None
+        self._compressors = {}  # type: Dict[Optional[str], codec]
+        self._default_codec = None  # type: Optional[str]
         self.type_to_name = {}  # type: Dict[Optional[str], Optional[str]]
         self.name_to_type = {}  # type: Dict[Optional[str], Optional[str]]
 
     def register(
         self,
         name: Union[str, None],
-        encoder: Callable,
-        decoder: Callable,
-        content_type: str,
+        compressor: ICompressor,
+        content_type: Optional[str],
     ) -> None:
         """ Register a new encoder/decoder.
 
         :param name (str): A convenience name for the compression method.
-        :param encoder (callable): A method that will be used to compress
-          data. If :const:`None` then encoding will not be possible.
-        :param decoder (Callable): A method that will be used to decompress
-          previously compressed data. If :const:`None` then decoding
-          will not be possible.
+
+        :param compressor: An object that implements the ICompressor interface
+          that can compress and decompress data back into the original object.
+
         :param content_type (str): The mime-type describing the serialized
               structure.
         """
-        if encoder:
-            self._encoders[content_type] = encoder
-        if decoder:
-            self._decoders[content_type] = decoder
+        if not isinstance(compressor, ICompressor):
+            raise Exception(
+                f"Invalid compressor '{name}'. Expected an instance of ICompressor"
+            )
 
-        self._supported_codecs[name] = {
-            "encoder": encoder is not None,
-            "decoder": decoder is not None,
-            "content_type": content_type,
-        }
+        self._compressors[name] = codec(content_type, compressor)
 
+        # map convenience name to mime-type and back again.
         self.type_to_name[content_type] = name
         self.name_to_type[name] = content_type
 
-    def _set_default_compressor(self, compression: Optional[str]) -> None:
+    def set_default(self, name_or_type: Optional[str]) -> None:
         """ Set the default compression method used by this library.
 
-        :param compression: The convenience name or the mime-type for the
+        :param name_or_type: The convenience name or the mime-type for the
           compression strategy.
 
         Raises:
-            Exception: If the compression method requested is not available.
+            Exception: If the name_or_type requested is not available.
         """
-        if compression in self.name_to_type:
-            name = compression
-            content_type = self.name_to_type[compression]
-        elif compression in self.type_to_name:
-            content_type = compression
-            name = self.type_to_name[content_type]
-        else:
-            raise Exception(f"Invalid compressor '{compression}'' requested")
+        name, content_type = self._resolve(name_or_type)
+        self._default_codec = name
 
-        if content_type not in self._encoders:
-            raise Exception(f"No encoder installed for {content_type}")
+    @property
+    def compressors(self):
+        """ Return a dict of the available compressors (codecs) """
+        return self._compressors
 
-        self._default_codec = compression
+    def get_compressor(self, name_or_type: str):
+        """ Return a specific compressor.
 
-    def get_supported_codecs(self, both: bool = False):
-        """ Return a dict of the available compression names containing
-        values representing whether they have both an encoder and a decoder
-        registered. E.g. {name: {'encoder': False, 'decoder':True}}
+        :param name_or_type: The convenience name or the mime-type for the
+          compression strategy. The value may be the alias name (e.g. zlib)
+          or the mime-type (e.g. application/zlib).
 
-        :param both: When this optional argument is True only codecs that
-          have an encoder and a decoder are returned.
+        :returns: A compressor object that can encode and decode bytes
+          using the named strategy.
         """
-        if both:
-            supported_codecs = {}
-            for name, settings in self._supported_codecs.items():
-                if settings["encoder"] and settings["decoder"]:
-                    supported_codecs[name] = settings
-        else:
-            supported_codecs = self._supported_codecs
-        return supported_codecs
+        name, content_type = self._resolve(name_or_type)
+        return self._compressors[name].compressor
 
-    def get_compressor(self, compression: Optional[str]) -> Tuple[str, ICompressor]:
-        """ Return a reference to a specific compressor
+    def get_codec(self, name_or_type: str):
+        """ Return codec attributes for a specific compressor.
 
-        :param compression: The convenience name or the mime-type for the
-          compression strategy.
+        :param name_or_type: The convenience name or the mime-type for the
+          compression strategy. The value may be the alias name (e.g. zlib)
+          or the mime-type (e.g. application/zlib).
 
-        :returns: The compression mime-type and a compressor function
-
-        Raises:
-            Exception: If the compression name or the mime-type requested is
-            not available.
+        :returns: A codec named tuple.
         """
-
-        if compression in self.name_to_type:
-            name = compression
-            content_type = self.name_to_type[compression]
-        elif compression in self.type_to_name:
-            content_type = compression
-            name = self.type_to_name[content_type]
-        else:
-            raise Exception(f"Invalid compressor '{compression}'' requested")
-
-        try:
-            return content_type, self._encoders[content_type]
-        except KeyError:
-            raise Exception(f"Invalid compressor '{content_type}' requested") from None
-
-    def get_decompressor(self, compression: Optional[str]) -> Tuple[str, ICompressor]:
-        """ Return a reference to a specific decompressor
-
-        :param compression: The convenience name or the mime-type for the
-          compression strategy.
-
-        :returns: The compression mime-type and a decompressor function
-
-        Raises:
-            Exception: If the compression name or the mime-type requested is
-            not available.
-        """
-        if compression in self.name_to_type:
-            name = compression
-            content_type = self.name_to_type[compression]
-        elif compression in self.type_to_name:
-            content_type = compression
-            name = self.type_to_name[content_type]
-        else:
-            raise Exception(f"Invalid decompressor '{compression}'' requested")
-
-        try:
-            return content_type, self._decoders[content_type]
-        except KeyError:
-            raise Exception(
-                f"Invalid decompressor '{content_type}' requested"
-            ) from None
+        name, content_type = self._resolve(name_or_type)
+        return self._compressors[name]
 
     def compress(
-        self, data: Any, compression: Optional[str] = None
-    ) -> Tuple[str, bytes]:
+        self, data: Any, name_or_type: Optional[str] = None
+    ) -> Tuple[Optional[str], bytes]:
         """ Compress some data.
 
-        Compress data into a bytes object suitable for sending as an AMQP message body.
+        Compress data into a bytes object suitable for sending as a message body.
 
         :param data: The message data to send.
 
-        :param compression: The convenience name or the mime-type for the
-          compression strategy. Defaults to none.
+        :param name_or_type: The convenience name or the mime-type for the
+          compression strategy. The value may be the alias name (e.g. zlib)
+          or the mime-type (e.g. application/zlib). Defaults to none.
 
         :returns: A tuple containing a string specifying the compression mime-type
           (e.g. `application/gzip`) and a bytes object representing the compressed data.
@@ -219,21 +163,23 @@ class CompressorRegistry(object):
         Raises:
             Exception: If the compression method requested is not available.
         """
-        content_type, compress = self.get_compressor(compression)
-        payload = compress(data)
+        name, content_type = self._resolve(name_or_type)
+        payload = self._compressors[name].compressor.compress(data)
         return content_type, payload
 
     def decompress(
-        self, data: bytes, compression: Optional[str] = None, **kwargs
-    ) -> Tuple[str, bytes]:
+        self, data: bytes, name_or_type: Optional[str] = None, **kwargs
+    ) -> Tuple[Optional[str], bytes]:
         """ Decompress some data.
 
-        Decompress a data blob that was compressed using `compress` based on `compression`.
+        Decompress a data blob that was compressed using `compress` based on
+        `compression`.
 
         :param data (bytes, buffer, str): The message data to decompress.
 
-        :param compression: The convenience name or the mime-type for the
-          compression strategy.
+        :param name_or_type: The convenience name or the mime-type for the
+          compression strategy. The value may be the alias name (e.g. zlib)
+          or the mime-type (e.g. application/zlib). Defaults to none.
 
         Raises:
             Exception: If the decompression method requested is not available.
@@ -241,9 +187,32 @@ class CompressorRegistry(object):
         Returns:
             Any: Decompressed data.
         """
-        content_type, decompress = self.get_decompressor(compression)
-        payload = decompress(data)
+        name, content_type = self._resolve(name_or_type)
+        payload = self._compressors[name].compressor.decompress(data)
         return content_type, payload
+
+    def _resolve(
+        self, name_or_type: Optional[str]
+    ) -> Tuple[Optional[str], Optional[str]]:
+        """ Resolve the compression name and mime-type.
+
+        :param name_or_type: The convenience name or the mime-type for the
+          compression strategy. The value may be the alias name (e.g. zlib)
+          or the mime-type (e.g. application/zlib).
+
+        Raises:
+            Exception: If the compression method requested is not available.
+        """
+        if name_or_type in self.name_to_type:
+            name = name_or_type
+            content_type = self.name_to_type[name_or_type]
+        elif name_or_type in self.type_to_name:
+            content_type = name_or_type
+            name = self.type_to_name[content_type]
+        else:
+            raise Exception(f"Invalid compressor '{name_or_type}'")
+
+        return name, content_type
 
 
 def register_none(registry: CompressorRegistry):
@@ -255,7 +224,7 @@ def register_none(registry: CompressorRegistry):
             Return data as a bytes object.
             """
             if not isinstance(data, bytes):
-                raise Exception(f"Can only compress bytes type, got {type(data)}")
+                raise Exception(f"Can only compress bytes, got {type(data)}")
 
             return data
 
@@ -263,7 +232,7 @@ def register_none(registry: CompressorRegistry):
             return data
 
     compressor = NoneCompressor()
-    registry.register(None, compressor.compress, compressor.decompress, None)
+    registry.register(None, compressor, None)
 
 
 def register_zlib(registry: CompressorRegistry):
@@ -280,9 +249,7 @@ def register_zlib(registry: CompressorRegistry):
             :return: data as a bytes object.
             """
             if not isinstance(data, bytes):
-                raise Exception(
-                    "Can only compress bytes type, got {}".format(type(data))
-                )
+                raise Exception("Can only compress bytes, got {}".format(type(data)))
 
             compressor = zlib.compressobj(level=9, wbits=zlib.MAX_WBITS)
             data = compressor.compress(data) + compressor.flush()
@@ -302,9 +269,7 @@ def register_zlib(registry: CompressorRegistry):
             return data
 
     compressor = ZlibCompressor()
-    registry.register(
-        "zlib", compressor.compress, compressor.decompress, COMPRESSION_ZLIB
-    )
+    registry.register("zlib", compressor, COMPRESSION_ZLIB)
 
 
 def register_deflate(registry: CompressorRegistry):
@@ -321,9 +286,7 @@ def register_deflate(registry: CompressorRegistry):
             :return: data as a bytes object.
             """
             if not isinstance(data, bytes):
-                raise Exception(
-                    "Can only compress bytes type, got {}".format(type(data))
-                )
+                raise Exception("Can only compress bytes, got {}".format(type(data)))
 
             compressor = zlib.compressobj(level=9, wbits=-zlib.MAX_WBITS)
             data = compressor.compress(data) + compressor.flush()
@@ -343,9 +306,7 @@ def register_deflate(registry: CompressorRegistry):
             return data
 
     compressor = DeflateCompressor()
-    registry.register(
-        "deflate", compressor.compress, compressor.decompress, COMPRESSION_DEFLATE
-    )
+    registry.register("deflate", compressor, COMPRESSION_DEFLATE)
 
 
 def register_gzip(registry: CompressorRegistry):
@@ -362,7 +323,7 @@ def register_gzip(registry: CompressorRegistry):
             :return: data as a bytes object.
             """
             if not isinstance(data, bytes):
-                raise Exception(f"Can only compress bytes type, got {type(data)}")
+                raise Exception(f"Can only compress bytes, got {type(data)}")
 
             compressor = zlib.compressobj(level=9, wbits=zlib.MAX_WBITS | 16)
             data = compressor.compress(data) + compressor.flush()
@@ -382,9 +343,7 @@ def register_gzip(registry: CompressorRegistry):
             return data
 
     compressor = GzipCompressor()
-    registry.register(
-        "gzip", compressor.compress, compressor.decompress, COMPRESSION_GZIP
-    )
+    registry.register("gzip", compressor, COMPRESSION_GZIP)
 
 
 def register_bz2(registry: CompressorRegistry):
@@ -402,7 +361,7 @@ def register_bz2(registry: CompressorRegistry):
                 :return: data as a bytes object.
                 """
                 if not isinstance(data, bytes):
-                    raise Exception(f"Can only compress bytes type, got {type(data)}")
+                    raise Exception(f"Can only compress bytes, got {type(data)}")
 
                 compressor = bz2.BZ2Compressor()
                 data = compressor.compress(data) + compressor.flush()
@@ -418,9 +377,7 @@ def register_bz2(registry: CompressorRegistry):
                 return data
 
         compressor = Bz2Compressor()
-        registry.register(
-            "bzip2", compressor.compress, compressor.decompress, COMPRESSION_BZ2
-        )
+        registry.register("bzip2", compressor, COMPRESSION_BZ2)
 
 
 def register_lzma(registry: CompressorRegistry):
@@ -438,7 +395,7 @@ def register_lzma(registry: CompressorRegistry):
                 :return: data as a bytes object.
                 """
                 if not isinstance(data, bytes):
-                    raise Exception(f"Can only compress bytes type, got {type(data)}")
+                    raise Exception(f"Can only compress bytes, got {type(data)}")
 
                 compressor = lzma.LZMACompressor()
                 data = compressor.compress(data) + compressor.flush()
@@ -454,9 +411,7 @@ def register_lzma(registry: CompressorRegistry):
                 return data
 
         compressor = LzmaCompressor()
-        registry.register(
-            "lzma", compressor.compress, compressor.decompress, COMPRESSION_LZMA
-        )
+        registry.register("lzma", compressor, COMPRESSION_LZMA)
 
 
 def register_brotli(registry: CompressorRegistry):
@@ -471,7 +426,7 @@ def register_brotli(registry: CompressorRegistry):
                 :return: data as a bytes object.
                 """
                 if not isinstance(data, bytes):
-                    raise Exception(f"Can only compress bytes type, got {type(data)}")
+                    raise Exception(f"Can only compress bytes, got {type(data)}")
 
                 return brotli.compress(data)
 
@@ -483,9 +438,7 @@ def register_brotli(registry: CompressorRegistry):
                 return brotli.decompress(data)
 
         compressor = BrotliCompressor()
-        registry.register(
-            "brotli", compressor.compress, compressor.decompress, COMPRESSION_BROTLI
-        )
+        registry.register("brotli", compressor, COMPRESSION_BROTLI)
 
 
 def register_snappy(registry: CompressorRegistry):
@@ -500,7 +453,7 @@ def register_snappy(registry: CompressorRegistry):
                 :return: data as a bytes object.
                 """
                 if not isinstance(data, bytes):
-                    raise Exception(f"Can only compress bytes type, got {type(data)}")
+                    raise Exception(f"Can only compress bytes, got {type(data)}")
 
                 return snappy.compress(data)
 
@@ -512,9 +465,7 @@ def register_snappy(registry: CompressorRegistry):
                 return snappy.uncompress(data)
 
         compressor = SnappyCompressor()
-        registry.register(
-            "snappy", compressor.compress, compressor.decompress, COMPRESSION_SNAPPY
-        )
+        registry.register("snappy", compressor, COMPRESSION_SNAPPY)
 
 
 def initialize(registry: CompressorRegistry):
@@ -528,7 +479,7 @@ def initialize(registry: CompressorRegistry):
     register_brotli(registry)
     register_snappy(registry)
 
-    registry._set_default_compressor(None)
+    registry.set_default(None)
 
 
 registry = CompressorRegistry()

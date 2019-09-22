@@ -64,7 +64,7 @@ def encode_payload(
     compression: str = None,
     headers: dict = None,
     type_identifier: int = None,
-) -> Tuple[bytes, str, str]:
+) -> Tuple[bytes, Optional[str], str]:
     """ Prepare a message payload.
 
     :param data: The message data to encode.

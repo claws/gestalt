@@ -33,7 +33,7 @@ pip install $RELEASE_ARCHIVE[amq,protobuf,msgpack,avro,brotli,snappy,yaml]
 
 echo "Running tests"
 cd ../tests
-python -m unittest discover -s .
+python -m unittest discover -s . -v
 
 echo "Exiting test virtual environment"
 deactivate

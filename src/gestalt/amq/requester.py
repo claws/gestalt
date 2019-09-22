@@ -17,7 +17,7 @@ from gestalt.serialization import loads
 
 from asyncio import AbstractEventLoop
 from aio_pika import Connection, Channel, Exchange, Queue
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, Optional, Tuple
 
 MessageHandlerType = Callable[[Any, IncomingMessage], None]
 
@@ -43,12 +43,11 @@ class Requester(object):
 
     def __init__(
         self,
-        # app_id: str,
         amqp_url: str = "",
         exchange_name: str = "",
         exchange_type: ExchangeType = ExchangeType.DIRECT,
         service_name: str = "",
-        reconnect_interval: int = 1.0,
+        reconnect_interval: float = 1.0,
         prefetch_count: int = 1,
         serialization: str = None,
         compression: str = None,
@@ -100,15 +99,16 @@ class Requester(object):
 
         self.reconnect_interval = reconnect_interval
         self.prefetch_count = prefetch_count
-        self.connection = None
-        self.channel = None
-        self.exchange = None
-        self.response_queue = None
+        self.connection = None  # type: Optional[Connection]
+        self.channel = None  # type: Optional[Channel]
+        self.exchange = None  # type: Optional[Exchange]
+        self.response_queue = None  # type: Optional[Queue]
         self.dlx_name = dlx_name
-        self.dlx_exchange = None
+        self.dlx_exchange = None  # type: Optional[Exchange]
+        self._consumer_tag = None  # type: Optional[str]
 
         self._response_message_task = None
-        self.futures = dict()
+        self.futures = dict()  # type: Dict[str, asyncio.Future]
 
     async def start(self) -> None:
         """ Start the client """
@@ -132,11 +132,11 @@ class Requester(object):
             logger.exception(ex)
             return
 
-        # keep mypy happy by checking connection is no longer None
-        assert isinstance(self.connection, Connection)
+        assert self.connection is not None
 
         # Creating a channel
         self.channel = await self.connection.channel()
+        assert self.channel is not None
         self.channel.add_close_callback(self._on_channel_closed)
         self.channel.add_on_return_callback(self._on_request_returned)
 
@@ -181,9 +181,11 @@ class Requester(object):
     async def stop(self) -> None:
         """ Stop the publisher """
         if self.response_queue:
+            assert self._consumer_tag is not None
             await self.response_queue.cancel(self._consumer_tag)
             self._consumer_tag = None
 
+            assert self.dlx_exchange is not None
             await self.response_queue.unbind(
                 self.dlx_exchange,
                 "",
@@ -209,7 +211,7 @@ class Requester(object):
     def __remove_future(self, correlation_id: str, future: asyncio.Future):
         self.futures.pop(correlation_id, None)
 
-    def create_future(self) -> asyncio.Future:
+    def create_future(self) -> Tuple[str, asyncio.Future]:
         correlation_id = str(uuid.uuid4())
         f = self.loop.create_future()
         self.futures[correlation_id] = f
@@ -245,21 +247,17 @@ class Requester(object):
 
         correlation_id, future = self.create_future()
 
-        headers = {}
+        headers = {}  # type: Dict[str, str]
 
-        try:
-            payload, content_type, content_encoding = utils.encode_payload(
-                data,
-                content_type=self.serialization,
-                compression=self.compression,
-                headers=headers,
-            )
-        except Exception as exc:
-            logger.exception("Error encoding request payload")
-            return
+        # An exception may be raised here if the message can not be serialized.
+        payload, content_type, content_encoding = utils.encode_payload(
+            data,
+            content_type=self.serialization,
+            compression=self.compression,
+            headers=headers,
+        )
 
-        # keep mypy happy by checking attribute is no longer None
-        assert isinstance(self.response_queue, Queue)
+        assert self.response_queue is not None
 
         # Add a 'From' entry to message headers which will be used to route an
         # expired message to the dead letter exchange queue.
@@ -283,6 +281,7 @@ class Requester(object):
             f"Sending request to {service_name} with correlation_id: {correlation_id}"
         )
 
+        assert self.exchange is not None
         await self.exchange.publish(
             message,
             routing_key=service_name,
@@ -305,7 +304,9 @@ class Requester(object):
             logger.warning(f"Message had no correlation_id: {message}")
             return
 
-        f = self.futures.pop(message.correlation_id, None)  # type: asyncio.Future
+        f = self.futures.pop(
+            message.correlation_id, None
+        )  # type: Optional[asyncio.Future]
 
         if f is None:
             logger.warning(
@@ -338,7 +339,9 @@ class Requester(object):
             logger.warning(f"Returned message had no correlation_id: {message}")
             return
 
-        f = self.futures.pop(message.correlation_id, None)  # type: asyncio.Future
+        f = self.futures.pop(
+            message.correlation_id, None
+        )  # type: Optional[asyncio.Future]
 
         if not f or f.done():
             logger.warning(f"Unknown message was returned: {message}")
@@ -349,7 +352,7 @@ class Requester(object):
     def _on_reconnected(self):
         logger.debug("Reconnected to broker!")
 
-    def _on_channel_closed(self, reason: str):
+    def _on_channel_closed(self, reason: Exception):
         logger.debug(f"Channel closed. Reason: {reason}")
         self._discard_pending_responses(reason=reason)
 

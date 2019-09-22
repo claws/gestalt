@@ -10,8 +10,9 @@ from aio_pika import ExchangeType, Message, connect_robust
 from aio_pika.exceptions import AMQPError
 from gestalt.amq import utils
 
+from aio_pika import Channel, Connection, Exchange
 from asyncio import AbstractEventLoop
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, Optional
 
 
 logger = logging.getLogger(__name__)
@@ -27,7 +28,7 @@ class Producer(object):
         exchange_name: str = "amq.topic",
         exchange_type: ExchangeType = ExchangeType.TOPIC,
         routing_key: str = "",
-        reconnect_interval: int = 1.0,
+        reconnect_interval: float = 1.0,
         serialization: str = None,
         compression: str = None,
         loop: AbstractEventLoop = None,
@@ -43,7 +44,7 @@ class Producer(object):
           message.
 
         :param reconnect_interval: The number of seconds between reconnection
-          attempts. Defaults to 1.
+          attempts. Defaults to 1.0.
 
         :param serialization: The name of the default serialization strategy to
           use when publishing messages. This strategy will be applied if no
@@ -66,9 +67,9 @@ class Producer(object):
         self.compression = compression
 
         self.reconnect_interval = reconnect_interval
-        self.connection = None
-        self.channel = None
-        self.exchange = None
+        self.connection = None  # type: Optional[Connection]
+        self.channel = None  # type: Optional[Channel]
+        self.exchange = None  # type: Optional[Exchange]
 
     async def start(self) -> None:
         """ Start the publisher """
@@ -92,9 +93,10 @@ class Producer(object):
             logger.exception(ex)
             return
 
+        assert self.connection is not None
         self.channel = await self.connection.channel()
+        assert self.channel is not None
         self.channel.add_close_callback(self._on_channel_closed)
-
         self.exchange = await self.channel.declare_exchange(
             self.exchange_name,
             self.exchange_type,
@@ -169,6 +171,7 @@ class Producer(object):
             logger.exception("Error encoding payload")
             return
 
+        assert self.exchange is not None
         await self.exchange.publish(
             Message(
                 body=payload,
@@ -184,5 +187,5 @@ class Producer(object):
     def _on_reconnected(self):
         logger.debug("Reconnected to broker!")
 
-    def _on_channel_closed(self, reason: str):
+    def _on_channel_closed(self, reason: Exception):
         logger.debug(f"Channel closed. Reason: {reason}")
