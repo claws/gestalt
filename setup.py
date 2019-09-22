@@ -47,6 +47,7 @@ if __name__ == "__main__":
         name="gestalt",
         description="gestalt is a Python application framework for building distributed systems",
         long_description=get_long_description(),
+        long_description_content_type="text/markdown",
         license="MIT license",
         url="https://github.com/claws/gestalt",
         version=get_version(),
