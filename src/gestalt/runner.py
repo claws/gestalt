@@ -2,17 +2,18 @@ import asyncio
 import inspect
 import logging
 import signal
+import sys
 
 from asyncio import AbstractEventLoop
 from signal import SIGTERM, SIGINT
 from typing import Awaitable, Callable, Coroutine, Optional
 
-try:
-    # Python3.7
+if sys.version_info >= (3, 7):
     from asyncio import all_tasks
-except ImportError:
+else:
     # Python 3.6
     all_tasks = asyncio.Task.all_tasks
+
 
 logger = logging.getLogger(__name__)
 
