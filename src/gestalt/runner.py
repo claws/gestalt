@@ -83,7 +83,9 @@ def run(
     loop.add_signal_handler(SIGTERM, signal_handler, loop, SIGTERM)
 
     def exception_handler(loop, context):
-        logger.exception(f"Caught exception: {context}")
+        exc_msg = context["message"]
+        exc = context["exception"]
+        logger.exception(f"Caught exception: {exc_msg}", exc_info=exc)
         loop.call_soon(loop.stop)
 
     loop.set_exception_handler(exception_handler)

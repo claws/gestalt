@@ -16,11 +16,7 @@ logger = logging.getLogger(__name__)
 def get_options():
     parser = argparse.ArgumentParser(description="AMQP RPC Server Example")
     parser.add_argument(
-        "--amqp-url",
-        metavar="<url>",
-        type=str,
-        default="amqp://guest:guest@localhost:5672/",
-        help="The AMQP URL",
+        "--amqp-url", metavar="<url>", type=str, default=None, help="The AMQP URL"
     )
     parser.add_argument(
         "--exchange-name",

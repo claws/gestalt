@@ -125,12 +125,9 @@ class Responder(object):
         except asyncio.CancelledError:
             logger.info(f"Connection({self.amqp_url}) cancelled")
             return
-        except (AMQPError, ConnectionError) as error:
-            logger.error(f"Connection({self.amqp_url}) {error}")
-            return
-        except Exception as ex:
-            logger.exception(ex)
-            return
+        except (AMQPError, ConnectionError) as exc:
+            logger.error(f"Connection({self.amqp_url}) {exc}")
+            raise Exception(f"Can't connect to {self.amqp_url}") from exc
 
         assert self.connection is not None
         self.channel = await self.connection.channel()
@@ -226,13 +223,13 @@ class Responder(object):
             await message.reject(requeue=False)
             return
 
-        response_message = Message(  # type: ignore
+        response_message = Message(
             body=payload,
             content_type=content_type,
             content_encoding=content_encoding,
             timestamp=time.time(),
             correlation_id=message.correlation_id,
-            delivery_mode=message.delivery_mode,
+            delivery_mode=message.delivery_mode,  # type: ignore
             headers=headers,
         )
 
