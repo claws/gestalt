@@ -39,7 +39,7 @@ def build_amqp_url(
     """
     user = user if user else os.getenv("RABBITMQ_USER", "guest")
     password = password if password else os.getenv("RABBITMQ_PASS", "guest")
-    host = host if host else os.getenv("RABBITMQ_HOST", "localhost")
+    host = host if host else os.getenv("RABBITMQ_HOST", "127.0.0.1")
     port = port if port else int(os.getenv("RABBITMQ_PORT", "5672"))
     virtual_host = virtual_host if virtual_host else "/"
 

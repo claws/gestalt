@@ -260,30 +260,30 @@ class RabbitmqUtilitiesTestCase(unittest.TestCase):
 
     def test_create_url_without_args(self):
         url = utils.build_amqp_url()
-        self.assertEqual(url, "amqp://guest:guest@localhost:5672//")
+        self.assertEqual(url, "amqp://guest:guest@127.0.0.1:5672//")
 
     def test_create_url_with_connection_attempts(self):
         url = utils.build_amqp_url(connection_attempts=5)
         self.assertEqual(
-            url, "amqp://guest:guest@localhost:5672//?connection_attempts=5"
+            url, "amqp://guest:guest@127.0.0.1:5672//?connection_attempts=5"
         )
 
     def test_create_url_with_heartbeat_interval(self):
         url = utils.build_amqp_url(heartbeat_interval=2)
         self.assertEqual(
-            url, "amqp://guest:guest@localhost:5672//?heartbeat_interval=2"
+            url, "amqp://guest:guest@127.0.0.1:5672//?heartbeat_interval=2"
         )
 
     def test_create_url_with_connection_attempts_andheartbeat_interval(self):
         url = utils.build_amqp_url(connection_attempts=5, heartbeat_interval=2)
         self.assertEqual(
             url,
-            "amqp://guest:guest@localhost:5672//?connection_attempts=5&heartbeat_interval=2",
+            "amqp://guest:guest@127.0.0.1:5672//?connection_attempts=5&heartbeat_interval=2",
         )
 
     def test_create_url_with_virtual_host(self):
         url = utils.build_amqp_url(virtual_host="vhost")
-        self.assertEqual(url, "amqp://guest:guest@localhost:5672/vhost")
+        self.assertEqual(url, "amqp://guest:guest@127.0.0.1:5672/vhost")
 
     def test_create_url_without_virtual_host(self):
         url = utils.build_amqp_url(

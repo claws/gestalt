@@ -102,7 +102,7 @@ class Consumer(object):
             return
         except (AMQPError, ConnectionError) as exc:
             logger.error(f"Connection({self.amqp_url}) {exc}")
-            raise Exception(f"Can't connect to {self.amqp_url}") from None
+            raise Exception(f"Can't connect to {self.amqp_url}") from exc
 
         assert self.connection is not None
         self.channel = await self.connection.channel()
