@@ -344,7 +344,7 @@ class Requester(object):
             logger.warning(f"Unknown message was returned: {message}")
             return
 
-        f.set_exception(DeliveryError(message, None))
+        f.set_exception(DeliveryError(message, None))  # type: ignore
 
     def _on_reconnected(self):
         logger.debug("Reconnected to broker!")

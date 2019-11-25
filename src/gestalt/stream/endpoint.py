@@ -131,7 +131,6 @@ class StreamEndpoint(object):
         self._reconnect = False
         self._backoff = 0.0
         self._backoff_maximum = backoff_maximum
-        self._backoff_task = None  # type: Optional[asyncio.Task]
         self._connect_task = None  # type: Optional[asyncio.Task]
 
         # Server specific attributes
@@ -192,7 +191,7 @@ class StreamEndpoint(object):
         :param addr: The address to connect or bind to. Defaults to an empty
           string which means all interfaces.
 
-        :param host: The port to connect or bind to. Defaults to 0 which
+        :param port: The port to connect or bind to. Defaults to 0 which
           results in an ephemeral port being used.
 
         :param family: An optional address family integer from the socket module.
@@ -200,10 +199,10 @@ class StreamEndpoint(object):
 
         :param ssl: an optional sslContext for use with TLS.
 
-        :param reconnect: A boolean flag that determines whether the endpoint
-          should automatically attempt to reconnect if the connection is
-          dropped. This argument is only used for endpoints operating in
-          client mode.
+        :param reconnect: A boolean flag that determines whether a client
+          endpoint should automatically attempt to reconnect if the connection
+          is dropped. Only used for endpoints operating in client mode.
+          Defaults to True.
         """
         if self.running:
             return
@@ -215,17 +214,20 @@ class StreamEndpoint(object):
         self._family = family
         self._ssl = ssl
         self._reconnect = reconnect
-        self._running = True
 
         if self.is_server:
             await self._listen(addr=addr, port=port, family=family, ssl=ssl)
         else:
             self._connect_task = self.loop.create_task(
                 self._connect(
-                    addr=addr, port=port, family=family, ssl=ssl, reconnect=reconnect
+                    addr=addr,
+                    port=port,
+                    family=family,
+                    ssl=ssl,
+                    reconnect=reconnect,
+                    initial=True,
                 )
             )
-            await self._connect_task
 
     async def stop(self):
         """ Stop endpoint.
@@ -236,9 +238,6 @@ class StreamEndpoint(object):
         connections.
 
         """
-        if not self.running:
-            return
-
         logger.debug(f"Stopping {self._mode_str}")
 
         if self.is_server:
@@ -250,11 +249,6 @@ class StreamEndpoint(object):
         else:
             # Prevent automatic reconnects upon disconnect
             self._reconnect = False
-
-            # Cancel any in-progress backoff tasks
-            if self._backoff_task:
-                self._backoff_task.cancel()
-            self._backoff_task = None
 
             # Cancel any in-progress connection tasks
             if self._connect_task:
@@ -268,14 +262,16 @@ class StreamEndpoint(object):
         self._family = 0
         self._ssl = None
         self._backoff = 0.0
-        self._running = False
 
-        # Don't let poor user code break the library
-        try:
-            if self._on_stopped_handler:
-                self._on_stopped_handler(self)
-        except Exception as exc:
-            logger.exception("Error in on_stopped callback method")
+        if self.running:
+            self._running = False
+
+            # Don't let poor user code break the library
+            try:
+                if self._on_stopped_handler:
+                    self._on_stopped_handler(self)
+            except Exception as exc:
+                logger.exception("Error in on_stopped callback method")
 
     def send(
         self, data: bytes, *, peer_id: bytes = None, type_identifier: int = 0, **kwargs
@@ -356,6 +352,8 @@ class StreamEndpoint(object):
             self._listener_addr = _laddr
             logger.debug(f"Bound listener to {self._listener_addr}")
 
+            self._running = True
+
             # Don't let poor user code break the library
             try:
                 if self._on_started_handler:
@@ -375,6 +373,7 @@ class StreamEndpoint(object):
         family: int = socket.AF_INET,
         ssl: SSLContext = None,
         reconnect: bool = True,
+        initial: bool = False,
     ) -> None:
         """ Connect the client to a server
 
@@ -387,36 +386,42 @@ class StreamEndpoint(object):
 
         :param ssl: an optional sslContext for use with TLS.
 
+        :param reconnect: A boolean flag that determines whether the
+          connection should automatically attempt to reconnect. Default
+          value is True.
+
+        :param initial: When set to True the endpoint will bypass the normal
+          connection backoff duration. Useful for the first connection
+          attempt. Default value is False.
         """
         logger.debug(f"Starting to connect to {addr}:{port}")
 
         # Start from a clean state
         await self._disconnect_peers()
 
-        # A small amount of jitter is added to the connection backoff time, to
-        # help improve performance in situations where thousands of clients
-        # simultaneously disconnect from a service and attempt to reconnect.
-        jitter = self._backoff * BACKOFF_JITTER
-        min_backoff_value = max(0, self._backoff - jitter)
-        max_backoff_value = self._backoff + jitter
-        backoff_duration = random.uniform(min_backoff_value, max_backoff_value)
-        if backoff_duration:
-            logger.info(
-                f"Waiting {backoff_duration:.1f} seconds before connection attempt"
-            )
-            # The wait is implemented as a task and a reference to it is held
-            # so it can be easily cancelled later.
-            self._backoff_task = self.loop.create_task(asyncio.sleep(backoff_duration))
-            try:
-                await self._backoff_task
-                self._backoff_task = None
-            except asyncio.CancelledError:
-                return
+        if not initial:
+            # A small amount of jitter is added to the connection backoff time, to
+            # help improve performance in situations where thousands of clients
+            # simultaneously disconnect from a service and attempt to reconnect.
+            jitter = self._backoff * BACKOFF_JITTER
+            min_backoff_value = max(0, self._backoff - jitter)
+            max_backoff_value = self._backoff + jitter
+            backoff_duration = random.uniform(min_backoff_value, max_backoff_value)
+            if backoff_duration:
+                logger.info(
+                    f"Waiting {backoff_duration:.1f} seconds before connection attempt"
+                )
+                # Endpoint may be stopped while performing a reconnection
+                # backoff wait. Handle this gracefully.
+                try:
+                    await asyncio.sleep(backoff_duration)
+                except asyncio.CancelledError:
+                    return
 
-        # Determine the next backoff time up to a maximum. E.g. 1.0, 2.5, 4.74...
-        self._backoff = min(
-            self._backoff_maximum, self._backoff + (self._backoff / 2) + 1
-        )
+            # Determine the next backoff time up to a maximum. E.g. 1.0, 2.5, 4.74...
+            self._backoff = min(
+                self._backoff_maximum, self._backoff + (self._backoff / 2) + 1
+            )
 
         _protocol = None
         try:
@@ -426,11 +431,13 @@ class StreamEndpoint(object):
             # Upon a successful connection the protocol will call the
             # on_peer_available method at which point the endpoint will
             # store a reference to the protocol along with the peer_id.
-            # Hence, an reference to the protocol is not stored for now.
+            # Hence, a reference to the protocol is not stored for now.
 
             # Reset some attributes upon successful connection
             self._backoff = 0
             self._connect_task = None
+
+            self._running = True
 
             try:
                 if self._on_started_handler:
@@ -442,17 +449,18 @@ class StreamEndpoint(object):
             # When connecting to "localhost", some systems try to connect to
             # both 127.0.0.1 and ::1 resulting in an OSError(Multiple errors
             # occurred) that wraps two ConnectionRefusedErrors
-            logger.error(f"Connection to {addr}:{port} was refused: {exc}")
+            logger.error(f"Connection to {addr}:{port} was refused")
         except Exception as exc:
-            logger.exception(f"Unexpected error connecting to {addr}:{port}: {exc}")
+            logger.error(f"Unexpected error connecting to {addr}:{port}", exc_info=exc)
 
-        if _protocol is None and self._reconnect:
-            logger.info(f"Attempting reconnect in {self._backoff} seconds")
+        if _protocol is None and reconnect:
             self._connect_task = self.loop.create_task(
                 self._connect(
                     addr=addr, port=port, family=family, ssl=ssl, reconnect=reconnect
                 )
             )
+        else:
+            self._backoff = 0
 
     async def _disconnect_peers(self):
         """ Disconnect peers """
@@ -502,7 +510,6 @@ class StreamEndpoint(object):
 
         if not self.is_server:
             if self._reconnect:
-                logger.info(f"Attempting reconnect in {self._backoff} seconds")
                 self._connect_task = self.loop.create_task(
                     self._connect(
                         addr=self._addr,

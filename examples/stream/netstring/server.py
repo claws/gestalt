@@ -28,21 +28,17 @@ if __name__ == "__main__":
     parser.add_argument(
         "--log-level",
         type=str,
+        choices=["debug", "info", "error"],
         default="error",
         help="Logging level [debug|info|error]. Default is 'error'.",
     )
 
     args = parser.parse_args()
 
-    try:
-        numeric_level = getattr(logging, args.log_level.upper())
-    except ValueError:
-        raise Exception(f"Invalid log-level: {args.log_level}")
-
     logging.basicConfig(
         format="%(asctime)s.%(msecs)03.0f [%(levelname)s] [%(name)s] %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
-        level=numeric_level,
+        level=getattr(logging, args.log_level.upper()),
     )
 
     def on_started(server):
@@ -55,7 +51,7 @@ if __name__ == "__main__":
         print(f"Server peer {peer_id} connected")
 
     def on_peer_unavailable(server, peer_id):
-        print(f"Server peer {peer_id} connected")
+        print(f"Server peer {peer_id} disconnected")
 
     async def on_message(server, data, peer_id, **kwargs) -> None:
         print(f"Server received msg from {peer_id}: {data}")

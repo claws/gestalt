@@ -28,21 +28,17 @@ if __name__ == "__main__":
     parser.add_argument(
         "--log-level",
         type=str,
+        choices=["debug", "info", "error"],
         default="error",
         help="Logging level [debug|info|error]. Default is 'error'.",
     )
 
     args = parser.parse_args()
 
-    try:
-        numeric_level = getattr(logging, args.log_level.upper())
-    except ValueError:
-        raise Exception(f"Invalid log-level: {args.log_level}")
-
     logging.basicConfig(
         format="%(asctime)s.%(msecs)03.0f [%(levelname)s] [%(name)s] %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
-        level=numeric_level,
+        level=getattr(logging, args.log_level.upper()),
     )
 
     def on_started(client):
