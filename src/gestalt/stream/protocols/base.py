@@ -110,7 +110,8 @@ class BaseStreamProtocol(asyncio.Protocol):
         logger.debug(
             f"Connection lost. id={self._identity}, "
             f"laddr={self._local_address}, "
-            f"raddr={self._remote_address}"
+            f"raddr={self._remote_address}, "
+            f"reason={exc}"
         )
 
         # Don't let user code break the library

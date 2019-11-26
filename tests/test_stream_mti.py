@@ -20,25 +20,28 @@ class MtiStreamEndpointTestCase(asynctest.TestCase):
 
         await server_ep.start()
         self.assertTrue(server_on_started_mock.called)
-        self.assertEqual(
-            server_on_started_mock.call_args, unittest.mock.call(server_ep)
-        )
+        (args, kwargs) = server_on_started_mock.call_args
+        self.assertIs(args[0], server_ep)
+        server_on_started_mock.reset_mock()
 
+        self.assertTrue(server_ep.running)
         address, port = server_ep.bindings[0]
 
         # Check that starting a server that is already started does not
         # have any consequences
         await server_ep.start()
+        self.assertFalse(server_on_started_mock.called)
 
         await server_ep.stop()
         self.assertTrue(server_on_stopped_mock.called)
+        (args, kwargs) = server_on_stopped_mock.call_args
+        self.assertIs(args[0], server_ep)
+        server_on_stopped_mock.reset_mock()
 
         # Check that stopping a server that is already stopped does not
         # have any consequences
         await server_ep.stop()
-        self.assertEqual(
-            server_on_stopped_mock.call_args, unittest.mock.call(server_ep)
-        )
+        self.assertFalse(server_on_stopped_mock.called)
 
     async def test_start_server_on_unavailable_port(self):
         """ check starting server on a used port raises an exception """
@@ -61,9 +64,12 @@ class MtiStreamEndpointTestCase(asynctest.TestCase):
                     await server_ep.start(addr=host, port=occupied_port)
 
             self.assertFalse(server_on_started_mock.called)
+            self.assertFalse(server_ep.running)
 
+            # Server was never started so calling stop should not have any
+            # consequences
             await server_ep.stop()
-            self.assertTrue(server_on_stopped_mock.called)
+            self.assertFalse(server_on_stopped_mock.called)
         finally:
             listener.close()
             await listener.wait_closed()
@@ -77,7 +83,7 @@ class MtiStreamEndpointTestCase(asynctest.TestCase):
             on_started=client_on_started_mock, on_stopped=client_on_stopped_mock
         )
 
-        # Attempt connection with reconnect=True
+        # Attempt connection with default reconnect=True
         sub_tests = (
             # addr_value, description
             ("localhost", "Using localhost as address"),
@@ -95,7 +101,6 @@ class MtiStreamEndpointTestCase(asynctest.TestCase):
                     await asyncio.sleep(0.1)
                     expected_items = (
                         "was refused",
-                        "Attempting reconnect in",
                         "seconds before connection attempt",
                     )
                     for expected_item in expected_items:
@@ -111,7 +116,7 @@ class MtiStreamEndpointTestCase(asynctest.TestCase):
                 with self.assertLogs(
                     "gestalt.stream.endpoint", level=logging.DEBUG
                 ) as log:
-                    await client_ep.start(addr="127.0.0.1", port=5555, reconnect=False)
+                    await client_ep.start(addr=addr_value, port=5555, reconnect=False)
                     # wait briefly for a possible reconnect attempt
                     await asyncio.sleep(0.1)
                     expected_items = ("was refused",)
@@ -120,10 +125,7 @@ class MtiStreamEndpointTestCase(asynctest.TestCase):
                             any(expected_item in log_item for log_item in log.output)
                         )
 
-                    unexpected_items = (
-                        "Attempting reconnect in",
-                        "seconds before connection attempt",
-                    )
+                    unexpected_items = ("seconds before connection attempt",)
                     for unexpected_item in unexpected_items:
                         self.assertFalse(
                             any(unexpected_item in log_item for log_item in log.output)

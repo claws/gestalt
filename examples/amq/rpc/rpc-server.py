@@ -13,7 +13,8 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 
-def get_options():
+if __name__ == "__main__":
+
     parser = argparse.ArgumentParser(description="AMQP RPC Server Example")
     parser.add_argument(
         "--amqp-url", metavar="<url>", type=str, default=None, help="The AMQP URL"
@@ -40,22 +41,12 @@ def get_options():
         help="Logging level. Default is 'error'.",
     )
 
-    return parser.parse_args()
-
-
-if __name__ == "__main__":
-
-    args = get_options()
-
-    try:
-        numeric_level = getattr(logging, args.log_level.upper())
-    except ValueError:
-        raise Exception(f"Invalid log-level: {args.log_level}")
+    args = parser.parse_args()
 
     logging.basicConfig(
         format="%(asctime)s.%(msecs)03.0f [%(levelname)s] [%(name)s] %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
-        level=numeric_level,
+        level=getattr(logging, args.log_level.upper()),
     )
 
     async def on_request(payload: Any, message: IncomingMessage):

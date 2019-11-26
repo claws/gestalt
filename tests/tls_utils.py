@@ -6,7 +6,10 @@ script, in the ``certs`` directory.
 import collections
 import pathlib
 import ssl
+import sys
 
+py_ver = sys.version_info
+PY36 = py_ver.major == 3 and py_ver.minor == 6
 
 CERTS_DIR = pathlib.Path(__file__).parent / "certs"
 CERT_FILENAMES = ["ca.pem", "server.pem", "server.key", "client.pem", "client.key"]
@@ -40,7 +43,7 @@ def create_ssl_server_context(cafile, certfile, keyfile) -> ssl.SSLContext:
     # certificate verification on the server side.
     ctx = ssl.create_default_context(purpose=ssl.Purpose.CLIENT_AUTH)
 
-    # Explicitly enable client certificate verification
+    # Explicitly require client certificate verification
     ctx.verify_mode = ssl.CERT_REQUIRED
 
     ctx.set_ciphers("ECDH+AESGCM")
@@ -49,13 +52,11 @@ def create_ssl_server_context(cafile, certfile, keyfile) -> ssl.SSLContext:
     if cafile:
         ctx.load_verify_locations(cafile=cafile)
 
-    ctx.options |= (
-        ssl.PROTOCOL_TLS
-        | ssl.OP_SINGLE_ECDH_USE  # This selects the highest support version
-        | ssl.OP_NO_TLSv1  # Prevent re-use of same ECDH key for distinct SSL sessions
-        | ssl.OP_NO_TLSv1_1
-        | ssl.OP_NO_COMPRESSION
-    )
+    if PY36:
+        ctx.options |= ssl.PROTOCOL_TLS | ssl.OP_NO_TLSv1 | ssl.OP_NO_TLSv1_1
+    else:
+        ctx.minimum_version = ssl.TLSVersion.TLSv1_2
+        ctx.maximum_version = ssl.TLSVersion.TLSv1_2
 
     return ctx
 
@@ -83,10 +84,10 @@ def create_ssl_client_context(cafile, certfile, keyfile):
 
     ctx.check_hostname = True
 
-    ctx.options |= (
-        ssl.PROTOCOL_TLS
-        | ssl.OP_NO_TLSv1  # This selects the highest support version
-        | ssl.OP_NO_TLSv1_1
-        | ssl.OP_NO_COMPRESSION
-    )
+    if PY36:
+        ctx.options |= ssl.PROTOCOL_TLS | ssl.OP_NO_TLSv1 | ssl.OP_NO_TLSv1_1
+    else:
+        ctx.minimum_version = ssl.TLSVersion.TLSv1_2
+        ctx.maximum_version = ssl.TLSVersion.TLSv1_2
+
     return ctx
