@@ -1,15 +1,14 @@
 import asyncio
 import inspect
 import logging
-import signal
 import sys
 
 from asyncio import AbstractEventLoop
 from signal import SIGTERM, SIGINT
-from typing import Awaitable, Callable, Coroutine, Optional
+from typing import Awaitable, Optional
 
 if sys.version_info >= (3, 7):
-    from asyncio import all_tasks
+    from asyncio import all_tasks  # pylint: disable=no-name-in-module
 else:
     # Python 3.6
     all_tasks = asyncio.Task.all_tasks

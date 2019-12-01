@@ -1,8 +1,4 @@
-import asyncio
-import binascii
-import enum
 import logging
-import os
 import struct
 
 from .base import BaseDatagramProtocol
@@ -50,7 +46,9 @@ class MtiDatagramProtocol(BaseDatagramProtocol):
     message identifier.
     """
 
-    def send(self, data: bytes, addr=None, type_identifier: int = 0, **kwargs):
+    def send(
+        self, data: bytes, addr=None, type_identifier: int = 0, **kwargs
+    ):  # pylint: disable=arguments-differ
         """ Sends a message by writing it to the transport.
 
         :param data: a bytes object containing the message payload.
@@ -105,5 +103,5 @@ class MtiDatagramProtocol(BaseDatagramProtocol):
                 self._on_message_handler(
                     self, self._identity, msg, addr=addr, type_identifier=msg_id
                 )
-        except Exception as exc:
+        except Exception:
             logger.exception("Error in on_message callback method")

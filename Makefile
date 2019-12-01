@@ -48,6 +48,12 @@ check-types:
 	@cd src; mypy -p gestalt --ignore-missing-imports
 
 
+# help: check-lint                - run static analysis checks
+.PHONY: check-lint
+check-lint:
+	@pylint --rcfile=.pylintrc gestalt
+
+
 # help: check-coverage            - check collect code coverage
 .PHONY: check-coverage
 check-coverage: generate certs

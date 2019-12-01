@@ -12,13 +12,13 @@ from gestalt.amq import utils
 
 from aio_pika import Channel, Connection, Exchange
 from asyncio import AbstractEventLoop
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Dict, Optional
 
 
 logger = logging.getLogger(__name__)
 
 
-class Producer(object):
+class Producer:
     """ The Producer publishes messages to RabbitMQ using a topic exchange.
     """
 
@@ -164,7 +164,7 @@ class Producer(object):
                 headers=headers,
                 type_identifier=type_identifier,
             )
-        except Exception as exc:
+        except Exception:
             logger.exception("Error encoding payload")
             return
 

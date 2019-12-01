@@ -18,7 +18,7 @@ class TimersTestCase(asynctest.TestCase):
 
         # check starting a started timer has no adverse side effects other
         # than reporting a warning.
-        with self.assertLogs("gestalt.timer", level=logging.WARNING) as log:
+        with self.assertLogs("gestalt.timer", level=logging.WARNING):
             await t.start()
 
         await asyncio.sleep(0.1)
@@ -28,7 +28,7 @@ class TimersTestCase(asynctest.TestCase):
 
         # check stopping a stopped timer has no adverse side effects other
         # than reporting a warning.
-        with self.assertLogs("gestalt.timer", level=logging.WARNING) as log:
+        with self.assertLogs("gestalt.timer", level=logging.WARNING):
             await t.stop()
 
     async def test_callback_func(self):
@@ -41,15 +41,15 @@ class TimersTestCase(asynctest.TestCase):
             pass
 
         with self.assertRaises(Exception):
-            t0 = Timer(0.1, user_func_sync)
+            Timer(0.1, user_func_sync)
 
         # check passing a coroutine function
-        t1 = Timer(0.1, user_func)
+        Timer(0.1, user_func)
 
     async def test_oneshot(self):
         """ check timer with a single repeat """
 
-        async def user_func(params, **kwargs):
+        async def user_func(params: dict, **kwargs):
             params["count"] += 1
             if params["count"] > params["repeats"]:
                 raise Exception(
@@ -59,23 +59,23 @@ class TimersTestCase(asynctest.TestCase):
         count = 0
         interval = 0.1
         repeats = 1
-        expected_completion_time = (interval * repeats) + (2 * interval)
+        check_result_time = (interval * repeats) + (2 * interval)
 
-        params = dict(count=count, repeats=repeats)
-        t = Timer(interval, user_func, params)
+        user_func_arg_1 = dict(count=count, repeats=repeats)
+        t = Timer(interval, user_func, user_func_arg_1)
         await t.start()
-        await asyncio.sleep(expected_completion_time)
+        await asyncio.sleep(check_result_time)
         await t.stop()
         self.assertEqual(
-            params["count"],
+            user_func_arg_1["count"],
             1,
-            f"Expected {params['repeats']} but found {params['count']}",
+            f"Expected {user_func_arg_1['repeats']} but found {user_func_arg_1['count']}",
         )
 
     async def test_repeating(self):
         """ check timer with specific number of repeats """
 
-        async def user_func(params, **kwargs):
+        async def user_func(params: dict, **kwargs):
             params["count"] += 1
             if params["count"] > params["repeats"]:
                 raise Exception(
@@ -87,15 +87,15 @@ class TimersTestCase(asynctest.TestCase):
         repeats = 3
         expected_completion_time = (interval * repeats) + (2 * interval)
 
-        params = dict(count=count, repeats=repeats)
-        t = Timer(interval, user_func, params, repeats=repeats)
+        user_func_arg_1 = dict(count=count, repeats=repeats)
+        t = Timer(interval, user_func, user_func_arg_1, repeats=repeats)
         await t.start()
         await asyncio.sleep(expected_completion_time)
         await t.stop()
         self.assertEqual(
-            params["count"],
+            user_func_arg_1["count"],
             3,
-            f"Expected {params['repeats']} but found {params['count']}",
+            f"Expected {user_func_arg_1['repeats']} but found {user_func_arg_1['count']}",
         )
 
     async def test_forever(self):

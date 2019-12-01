@@ -1,9 +1,7 @@
 import asyncio
 import binascii
-import enum
 import logging
 import os
-import struct
 
 from typing import Tuple
 
@@ -49,6 +47,8 @@ class BaseStreamProtocol(asyncio.Protocol):
         self._peercert = None
         self._identity = b""
 
+        self.transport = None
+
     @property
     def raddr(self) -> Tuple[str, int]:
         """ Return the remote address the protocol is connected with """
@@ -80,7 +80,7 @@ class BaseStreamProtocol(asyncio.Protocol):
         # scopeid) which needs to be converted to the expected 2-tuple.
         def get_host_port(info) -> Tuple[str, int]:
             if len(info) == 4:
-                host, port, flowinfo, scopeid = info
+                host, port, _flowinfo, _scopeid = info
                 info = (host, port)
             return info
 
@@ -100,7 +100,7 @@ class BaseStreamProtocol(asyncio.Protocol):
         try:
             if self._on_peer_available_handler:
                 self._on_peer_available_handler(self, self._identity)
-        except Exception as exc:
+        except Exception:
             logger.exception("Error in on_peer_available callback method")
 
     def connection_lost(self, exc):
@@ -118,7 +118,7 @@ class BaseStreamProtocol(asyncio.Protocol):
         try:
             if self._on_peer_unavailable_handler:
                 self._on_peer_unavailable_handler(self, self._identity)
-        except Exception as exc:
+        except Exception:
             logger.exception("Error in on_peer_unavailable callback method")
 
         if hasattr(self, "transport"):
@@ -160,6 +160,6 @@ class BaseStreamProtocol(asyncio.Protocol):
         # Don't let user code break the library
         try:
             if self._on_message_handler:
-                self._on_message_handler(self, self._identity, msg)
-        except Exception as exc:
+                self._on_message_handler(self, self._identity, data)
+        except Exception:
             logger.exception("Error in on_message callback method")

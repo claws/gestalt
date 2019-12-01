@@ -1,8 +1,4 @@
-import asyncio
-import binascii
-import enum
 import logging
-import os
 import struct
 
 from .base import BaseDatagramProtocol
@@ -33,7 +29,9 @@ class NetstringDatagramProtocol(BaseDatagramProtocol):
     Messages with a payload size of zero are invalid.
     """
 
-    def send(self, data: bytes, addr=None, add_frame_header=True, **kwargs):
+    def send(
+        self, data: bytes, addr=None, add_frame_header=True, **kwargs
+    ):  # pylint: disable=arguments-differ
         """
         Send a message to a remote UDP endpoint by writing it to the transport.
 
@@ -82,5 +80,5 @@ class NetstringDatagramProtocol(BaseDatagramProtocol):
         try:
             if self._on_message_handler:
                 self._on_message_handler(self, self._identity, msg, addr=addr)
-        except Exception as exc:
+        except Exception:
             logger.exception("Error in on_message callback method")

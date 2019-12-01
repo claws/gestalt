@@ -7,12 +7,10 @@ import asyncio
 import logging
 import inspect
 import time
-import uuid
 
 from aio_pika import ExchangeType, IncomingMessage, Message, connect_robust
 from aio_pika.exceptions import AMQPError
 from gestalt.amq import utils
-from gestalt.serialization import loads
 
 from asyncio import AbstractEventLoop
 from aio_pika import Connection, Channel, Exchange, Queue
@@ -23,7 +21,7 @@ MessageHandlerType = Callable[[Any, IncomingMessage], None]
 logger = logging.getLogger(__name__)
 
 
-class Responder(object):
+class Responder:
     """
     This object is used as the server in the Request/Response communications
     pattern. This object binds to a queue it creates to handle service
@@ -111,7 +109,7 @@ class Responder(object):
         self._consumer_tag = None  # type: Optional[str]
 
     async def start(self) -> None:
-        """ Start the client """
+        """ Start the responder """
         if self.queue:
             # Already running
             return
@@ -165,7 +163,7 @@ class Responder(object):
         self._consumer_tag = await self.queue.consume(self._on_request_message)
 
     async def stop(self) -> None:
-        """ Stop the client """
+        """ Stop the responder """
         # Stop the message queue processing task
         if self.queue:
             assert self._consumer_tag is not None
@@ -194,7 +192,7 @@ class Responder(object):
 
         try:
             payload = utils.decode_message(message)
-        except Exception as exc:
+        except Exception:
             logger.exception("Problem in message decode function")
             await message.reject(requeue=False)
             return
@@ -204,7 +202,7 @@ class Responder(object):
             response = self._request_handler(payload, message)
             if inspect.isawaitable(response):
                 response = await response  # type: ignore
-        except Exception as exc:
+        except Exception:
             logger.exception(f"Problem in user message handler function")
             await message.reject(requeue=False)
             return
@@ -218,7 +216,7 @@ class Responder(object):
                 compression=self.compression,
                 headers=headers,
             )
-        except Exception as exc:
+        except Exception:
             logger.exception("Error encoding response payload")
             await message.reject(requeue=False)
             return
