@@ -1,8 +1,5 @@
-import asyncio
-import binascii
 import enum
 import logging
-import os
 import struct
 
 from .base import BaseStreamProtocol
@@ -73,7 +70,9 @@ class MtiStreamProtocol(BaseStreamProtocol):
         self._buffer = bytearray()
         self._state = ProtocolStates.WAIT_HEADER
 
-    def send(self, data: bytes, type_identifier: int = 0, **kwargs):
+    def send(
+        self, data: bytes, type_identifier: int = 0, **kwargs
+    ):  # pylint: disable=arguments-differ
         """ Sends a message by writing it to the transport.
 
         :param data: a bytes object containing the message payload.
@@ -132,7 +131,7 @@ class MtiStreamProtocol(BaseStreamProtocol):
                                 self._on_message_handler(
                                     self, self._identity, b"", identifier=msg_id
                                 )
-                        except Exception as exc:
+                        except Exception:
                             logger.exception("Error in on_message callback method")
 
                     elif msg_len > MAX_MSG_SIZE:
@@ -162,7 +161,7 @@ class MtiStreamProtocol(BaseStreamProtocol):
                             self._on_message_handler(
                                 self, self._identity, msg, type_identifier=msg_id
                             )
-                    except Exception as exc:
+                    except Exception:
                         logger.exception("Error in on_message callback method")
 
                 else:

@@ -19,15 +19,8 @@ results in just the message framing header being sent which transfers
 the message identifier. This can be used to notify recipients of simple
 events that do no need any extra context.
 """
-import logging
-import os
-
-from gestalt import serialization
 from gestalt.stream.endpoint import StreamClient, StreamServer
 from gestalt.stream.protocols.mti import MtiStreamProtocol
-
-
-logger = logging.getLogger(__name__)
 
 
 class MtiStreamClient(StreamClient):

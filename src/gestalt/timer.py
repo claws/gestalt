@@ -1,14 +1,13 @@
 import asyncio
 import logging
 import inspect
-import time
 from typing import Awaitable, Callable, Optional
 from asyncio import AbstractEventLoop
 
 logger = logging.getLogger(__name__)
 
 
-class Timer(object):
+class Timer:
     """
     The Timer object aims to simplify creating periodic calls to a function.
 
@@ -79,7 +78,7 @@ class Timer(object):
         self._kwargs = kwargs
 
         self._handle = None  # type: Optional[asyncio.Handle]
-        self._task = None
+        self._task = None  # type: Optional[asyncio.Task]
         self._started = False
         self._running = False
         self._cancelled = False
@@ -141,8 +140,13 @@ class Timer(object):
         else:
             self._handle = self.loop.call_later(delay, self._on_timer_expiry)
 
-    def _cancel(self):
-        """ Cancel the timer """
+    def _cancel(self, *args):
+        """ Cancel the timer.
+
+        This method may be called directly or from a Task's done_callback. In
+        this last use case it needs to accept an argument (the task result),
+        which is why this method takes an optional 'args' parameter.
+        """
         self._cancelled = True
         if self._handle:
             self._handle.cancel()
@@ -165,12 +169,16 @@ class Timer(object):
         if self._running:
             logger.error("Timer function is still running, skipping this call")
         else:
-            self.__task = self.loop.create_task(self._runner())
+            self._task = self.loop.create_task(self._runner())
 
         if self.forever or self.repeats:
             self._schedule(self.interval)
         else:
-            self._cancel()
+            # This block is executed when a repeating timer has been called
+            # for the last time. Have the task cancel the timer when it
+            # completes.
+            assert isinstance(self._task, asyncio.Task)  # satisfy mypy
+            self._task.add_done_callback(self._cancel)
 
     async def _runner(self):
         """ Execute the user callback function.

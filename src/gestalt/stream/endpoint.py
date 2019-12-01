@@ -8,7 +8,7 @@ import socket
 from ssl import SSLContext
 from gestalt import serialization
 from gestalt.stream.protocols.base import BaseStreamProtocol
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Type
+from typing import Any, Dict, Optional, Sequence, Tuple, Type
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +22,7 @@ class StreamEndpointModes(enum.Enum):
     Client = 1
 
 
-class StreamEndpoint(object):
+class StreamEndpoint:
     """
     A stream endpoint provides two-way communications with a another stream
     oriented interface. Depending on the protocol being used, an endpoint can
@@ -123,6 +123,7 @@ class StreamEndpoint(object):
         self._peers = {}  # type: Dict[bytes, BaseStreamProtocol]
         self._addr = ""
         self._port = 0
+        self._family = None  # type: Optional[int]
         self._ssl = None  # type: Optional[SSLContext]
 
         self._running = False
@@ -259,7 +260,7 @@ class StreamEndpoint(object):
 
         self._addr = ""
         self._port = 0
-        self._family = 0
+        self._family = None
         self._ssl = None
         self._backoff = 0.0
 
@@ -270,7 +271,7 @@ class StreamEndpoint(object):
             try:
                 if self._on_stopped_handler:
                     self._on_stopped_handler(self)
-            except Exception as exc:
+            except Exception:
                 logger.exception("Error in on_stopped callback method")
 
     def send(
@@ -294,7 +295,7 @@ class StreamEndpoint(object):
             logger.error(f"No peers to send message to!")
             return
 
-        content_type, content_encoding, data = serialization.dumps(
+        _content_type, _content_encoding, data = serialization.dumps(
             data, self.serialization_name
         )
 
@@ -310,7 +311,7 @@ class StreamEndpoint(object):
 
     def _protocol_factory(self):
         """ Return a protocol instance to handle a new peer connection """
-        return self.protocol_class(
+        return self.protocol_class(  # pylint: disable=not-callable
             on_message=self.on_message,
             on_peer_available=self.on_peer_available,
             on_peer_unavailable=self.on_peer_unavailable,
@@ -484,7 +485,7 @@ class StreamEndpoint(object):
         try:
             if self._on_peer_available_handler:
                 self._on_peer_available_handler(self, peer_id)
-        except Exception as exc:
+        except Exception:
             logger.exception("Error in on_peer_available callback method")
 
     def on_peer_unavailable(self, prot, peer_id: bytes):
@@ -505,11 +506,12 @@ class StreamEndpoint(object):
         try:
             if self._on_peer_unavailable_handler:
                 self._on_peer_unavailable_handler(self, peer_id)
-        except Exception as exc:
+        except Exception:
             logger.exception("Error in on_peer_unavailable callback method")
 
         if not self.is_server:
             if self._reconnect:
+                assert isinstance(self._family, int)  # satisfy mypy type checker
                 self._connect_task = self.loop.create_task(
                     self._connect(
                         addr=self._addr,
@@ -546,7 +548,7 @@ class StreamEndpoint(object):
                 )
                 if inspect.isawaitable(maybe_awaitable):
                     self.loop.create_task(maybe_awaitable)
-            except Exception as exc:
+            except Exception:
                 logger.exception(f"Error in on_message callback method")
                 return
 

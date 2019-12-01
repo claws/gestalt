@@ -1,11 +1,10 @@
 import asyncio
-import asynctest
 import logging
 import os
 import signal
 import unittest
 import unittest.mock
-from gestalt.runner import run, logger
+from gestalt.runner import run
 
 
 def invalid_func():

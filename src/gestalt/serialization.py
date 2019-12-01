@@ -1,14 +1,13 @@
 import abc
-import codecs
 import io
-import itertools
 import json
 
 from collections import namedtuple
-from typing import Any, Callable, Optional, Tuple
+from typing import Any, Optional, Tuple
 
 try:
-    import avro
+    from avro import io as avro_io
+    from avro import schema
 
     have_avro = True
 except ImportError:
@@ -29,7 +28,8 @@ except ImportError:
     have_yaml = False
 
 try:
-    import google
+    from google.protobuf.message import Message
+    from google.protobuf import symbol_database
 
     have_protobuf = True
 except ImportError:
@@ -62,7 +62,7 @@ class ISerializer(abc.ABC):
         """ Returns deserialized data """
 
 
-class SerializerRegistry(object):
+class SerializerRegistry:
     """ This registry keeps track of serialization strategies.
 
     A convenience name or the specific content-type string can be used to
@@ -119,7 +119,6 @@ class SerializerRegistry(object):
 
     @property
     def serializers(self):
-        """ Return a dict of the available serializers (codecs) """
         return self._serializers
 
     def get_serializer(self, name_or_type: str):
@@ -255,7 +254,7 @@ class SerializerRegistry(object):
           The string may be the alias name (e.g. json) or the mime-type
           (e.g. application/json).
         """
-        if x in self.name_to_type:
+        if x in self.name_to_type:  # pylint: disable=no-else-return
             return x
         elif x in self.type_to_name:
             return self.type_to_name[x]
@@ -263,7 +262,7 @@ class SerializerRegistry(object):
             raise Exception(f"Invalid serializer '{x}'")
 
 
-def register_none(registry: SerializerRegistry):
+def register_none(reg: SerializerRegistry):
     """ The serialization you have when you don't want serialization. """
 
     class NoneSerializer(ISerializer):
@@ -278,12 +277,12 @@ def register_none(registry: SerializerRegistry):
             return data
 
     serializer = NoneSerializer()
-    registry.register(
+    reg.register(
         None, serializer, content_type=CONTENT_TYPE_DATA, content_encoding="binary"
     )
 
 
-def register_text(registry: SerializerRegistry) -> None:
+def register_text(reg: SerializerRegistry) -> None:
     """ Register an encoder/decoder for TEXT serialization. """
 
     class TextSerializer(ISerializer):
@@ -304,12 +303,12 @@ def register_text(registry: SerializerRegistry) -> None:
             return data.decode("utf-8")
 
     serializer = TextSerializer()
-    registry.register(
+    reg.register(
         "text", serializer, content_type=CONTENT_TYPE_TEXT, content_encoding="utf-8"
     )
 
 
-def register_json(registry: SerializerRegistry) -> None:
+def register_json(reg: SerializerRegistry) -> None:
     """ Register an encoder/decoder for JSON serialization. """
 
     class JsonSerializer(ISerializer):
@@ -330,16 +329,15 @@ def register_json(registry: SerializerRegistry) -> None:
             return json.loads(data if isinstance(data, str) else data.decode("utf-8"))
 
     serializer = JsonSerializer()
-    registry.register(
+    reg.register(
         "json", serializer, content_type=CONTENT_TYPE_JSON, content_encoding="utf-8"
     )
 
 
-def register_msgpack(registry: SerializerRegistry) -> None:
+def register_msgpack(reg: SerializerRegistry) -> None:
     """ Register an encoder/decoder for MsgPack serialization. """
 
     if have_msgpack:
-        from msgpack import packb, unpackb
 
         class MsgpackSerializer(ISerializer):
             """
@@ -366,7 +364,7 @@ def register_msgpack(registry: SerializerRegistry) -> None:
                 return msgpack.unpackb(data, raw=False)
 
         serializer = MsgpackSerializer()
-        registry.register(
+        reg.register(
             "msgpack",
             serializer,
             content_type=CONTENT_TYPE_MSGPACK,
@@ -374,7 +372,7 @@ def register_msgpack(registry: SerializerRegistry) -> None:
         )
 
 
-def register_yaml(registry: SerializerRegistry) -> None:
+def register_yaml(reg: SerializerRegistry) -> None:
     """ Register an encoder/decoder for YAML serialization.
 
     It is slower than JSON, but allows for more data types to be serialized.
@@ -401,22 +399,19 @@ def register_yaml(registry: SerializerRegistry) -> None:
                 return yaml.safe_load(data.decode("utf-8"))
 
         serializer = YamlSerializer()
-        registry.register(
+        reg.register(
             "yaml", serializer, content_type=CONTENT_TYPE_YAML, content_encoding="utf-8"
         )
 
 
-def register_avro(registry: SerializerRegistry, schema_registry=None):
+def register_avro(reg: SerializerRegistry, schema_registry=None):
     """ Register an encoder/decoder for Apache Avro serialization. """
 
     if have_avro:
 
-        import avro.io
-        import avro.schema
-
-        class SchemaRegistry(object):
+        class SchemaRegistry:
             def __init__(self):
-                self.id2schema = {}  # type: Dict[int, avro.schema.Schema]
+                self.id2schema = {}  # type: Dict[int, schema.Schema]
                 self._id = 0
 
             def register_message(self, obj: dict, type_identifier: int = None) -> int:
@@ -428,9 +423,7 @@ def register_avro(registry: SerializerRegistry, schema_registry=None):
                   automatically assigned.
                 """
                 if isinstance(obj, dict):
-                    avro_schema = avro.schema.SchemaFromJSONData(
-                        obj, avro.schema.Names()
-                    )
+                    avro_schema = schema.SchemaFromJSONData(obj, schema.Names())
                 else:
                     avro_schema = obj
 
@@ -447,24 +440,28 @@ def register_avro(registry: SerializerRegistry, schema_registry=None):
         class AvroSerializer(ISerializer):
             def __init__(self, schema_registry=None):
                 """
-                :param schema_registry: A avro.schema.Schema object populated with the
+                :param schema_registry: A schema.Schema object populated with the
                   schemas that will be used.
                 """
                 self.registry = schema_registry if schema_registry else SchemaRegistry()
 
-            def encode(self, data, *, type_identifier: int = None, **kwargs):
+            def encode(
+                self, data, *, type_identifier: int = None, **kwargs
+            ):  # pylint: disable=arguments-differ
                 """ Encode an object into Avro and return a :class:`bytes` object.
 
                 :returns: a serialized message as a bytes object.
                 """
-                schema = self.registry.get_schema_by_id(type_identifier)
+                avroSchema = self.registry.get_schema_by_id(type_identifier)
                 bytes_writer = io.BytesIO()
-                encoder = avro.io.BinaryEncoder(bytes_writer)
-                datum_writer = avro.io.DatumWriter(schema)
+                encoder = avro_io.BinaryEncoder(bytes_writer)
+                datum_writer = avro_io.DatumWriter(avroSchema)
                 datum_writer.write(data, encoder)
                 return bytes_writer.getvalue()
 
-            def decode(self, data, *, type_identifier: int = None, **kwargs):
+            def decode(
+                self, data, *, type_identifier: int = None, **kwargs
+            ):  # pylint: disable=arguments-differ
                 """ Decode *data* from :class:`bytes` to the original data structure.
 
                 :param data: a bytes object containing a serialized message.
@@ -475,14 +472,14 @@ def register_avro(registry: SerializerRegistry, schema_registry=None):
 
                 :returns: A Python object.
                 """
-                schema = self.registry.get_schema_by_id(type_identifier)
+                avroSchema = self.registry.get_schema_by_id(type_identifier)
                 bytes_reader = io.BytesIO(data)
-                decoder = avro.io.BinaryDecoder(bytes_reader)
-                datum_reader = avro.io.DatumReader(schema)
+                decoder = avro_io.BinaryDecoder(bytes_reader)
+                datum_reader = avro_io.DatumReader(avroSchema)
                 return datum_reader.read(decoder)
 
         serializer = AvroSerializer(schema_registry=schema_registry)
-        registry.register(
+        reg.register(
             "avro",
             serializer,
             content_type=CONTENT_TYPE_AVRO,
@@ -490,15 +487,12 @@ def register_avro(registry: SerializerRegistry, schema_registry=None):
         )
 
 
-def register_protobuf(registry: SerializerRegistry, object_registry=None) -> None:
+def register_protobuf(reg: SerializerRegistry, object_registry=None) -> None:
     """ Register an encoder/decoder for Google Protocol Buffers serialization. """
 
     if have_protobuf:
 
-        from google.protobuf.message import Message
-        from google.protobuf import symbol_database
-
-        class ObjectRegistry(object):
+        class ObjectRegistry:
             def __init__(self):
                 self.symDb = symbol_database.Default()
                 self.id2sym = {}
@@ -567,7 +561,7 @@ def register_protobuf(registry: SerializerRegistry, object_registry=None) -> Non
                 """
                 self.registry = object_registry if object_registry else ObjectRegistry()
 
-            def encode(self, obj, **kwargs):
+            def encode(self, obj, **kwargs):  # pylint: disable=arguments-differ
                 """ Encode the given object and return a :class:`bytes` object.
 
                 :param obj: A Protobuf object to serialize into bytes.
@@ -602,7 +596,7 @@ def register_protobuf(registry: SerializerRegistry, object_registry=None) -> Non
                 return obj
 
         serializer = ProtobufSerializer(object_registry=object_registry)
-        registry.register(
+        reg.register(
             "protobuf",
             serializer,
             content_type=CONTENT_TYPE_PROTOBUF,
@@ -610,24 +604,19 @@ def register_protobuf(registry: SerializerRegistry, object_registry=None) -> Non
         )
 
 
-def initialize(registry: SerializerRegistry):
+def initialize(reg: SerializerRegistry):
     """ Register serialization methods and set a default """
-    register_none(registry)
-    register_text(registry)
-    register_json(registry)
-    register_msgpack(registry)
-    register_yaml(registry)
-    register_avro(registry)
-    register_protobuf(registry)
+    register_none(reg)
+    register_text(reg)
+    register_json(reg)
+    register_msgpack(reg)
+    register_yaml(reg)
+    register_avro(reg)
+    register_protobuf(reg)
 
-    registry.set_default("json")
+    reg.set_default("json")
 
 
-"""
-.. data:: registry
-
-Global registry of serializers/deserializers.
-"""
 registry = SerializerRegistry()
 
 dumps = registry.dumps

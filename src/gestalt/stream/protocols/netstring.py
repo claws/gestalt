@@ -1,8 +1,5 @@
-import asyncio
-import binascii
 import enum
 import logging
-import os
 import struct
 
 from .base import BaseStreamProtocol
@@ -61,7 +58,9 @@ class NetstringStreamProtocol(BaseStreamProtocol):
         self._buffer = bytearray()
         self._state = ProtocolStates.WAIT_HEADER
 
-    def send(self, data: bytes, add_frame_header=True, **kwargs):
+    def send(
+        self, data: bytes, add_frame_header=True, **kwargs
+    ):  # pylint: disable=arguments-differ
         """ Sends a message by writing it to the transport.
 
         :param add_frame_header: A flag that informs the sending function
@@ -133,7 +132,7 @@ class NetstringStreamProtocol(BaseStreamProtocol):
                     try:
                         if self._on_message_handler:
                             self._on_message_handler(self, self._identity, msg)
-                    except Exception as exc:
+                    except Exception:
                         logger.exception("Error in on_message callback method")
 
                 else:

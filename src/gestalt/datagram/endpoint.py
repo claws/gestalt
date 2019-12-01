@@ -4,12 +4,12 @@ import socket
 
 from gestalt import serialization
 from gestalt.datagram.protocols.base import BaseDatagramProtocol
-from typing import Any, List, Optional, Sequence, Tuple
+from typing import Any, Optional, Sequence, Tuple
 
 logger = logging.getLogger(__name__)
 
 
-class DatagramEndpoint(object):
+class DatagramEndpoint:
     """
     UDP is connectionless transport so there are no connection events expected.
     In some circumstances, it is possible to receive an error if the transport
@@ -77,7 +77,8 @@ class DatagramEndpoint(object):
 
         if not issubclass(self.protocol_class, BaseDatagramProtocol):
             raise Exception(
-                f"Endpoint protocol class must be a subclass of BaseDatagramProtocol, got {self.protocol_class}"
+                "Endpoint protocol class must be a subclass of BaseDatagramProtocol, "
+                f"got {self.protocol_class}"
             )
 
         self._running = False
@@ -89,8 +90,6 @@ class DatagramEndpoint(object):
         """ Return the running state of the endpoint.
 
         A running endpoint simply indicates that the endpoint has been started.
-        A running client endpoint may not actually be connected as it may be
-        attempting reconnects, etc.
         """
         return self._running
 
@@ -98,19 +97,19 @@ class DatagramEndpoint(object):
     def bindings(self) -> Sequence[Tuple[str, int]]:
         """ Return a server endpoint's bound addresses. """
         if self.running:
-            assert self._protocol is not None
-            return [self._protocol.laddr]
+            result = [self._protocol.laddr] if self._protocol else []
         else:
-            return []
+            result = []
+        return result
 
     @property
     def connections(self) -> Sequence[Tuple[str, int]]:
         """ Return a client endpoint's connect addresses """
         if self.running:
-            assert self._protocol is not None
-            return [self._protocol.raddr]
+            result = [self._protocol.raddr] if self._protocol else []
         else:
-            return []
+            result = []
+        return result
 
     def register_message(self, type_identifier: int, obj: Any):
         """
@@ -186,7 +185,7 @@ class DatagramEndpoint(object):
             try:
                 if self._on_started_handler:
                     self._on_started_handler(self)
-            except Exception as exc:
+            except Exception:
                 logger.exception("Error in on_started callback method")
 
         except (ConnectionRefusedError, OSError) as exc:
@@ -211,15 +210,13 @@ class DatagramEndpoint(object):
             # Allow event loop to briefly iterate so that transport can close
             await asyncio.sleep(0)
 
-        self._addr = ""
-        self._port = 0
         self._running = False
 
         # Don't let poor user code break the library
         try:
             if self._on_stopped_handler:
                 self._on_stopped_handler(self)
-        except Exception as exc:
+        except Exception:
             logger.exception("Error in on_stopped callback method")
 
     def send(
@@ -243,7 +240,7 @@ class DatagramEndpoint(object):
             logger.error(f"No protocol to send message with!")
             return
 
-        content_type, content_encoding, data = serialization.dumps(
+        _content_type, _content_encoding, data = serialization.dumps(
             data, self.serialization_name
         )
 
@@ -309,7 +306,7 @@ class DatagramEndpoint(object):
         try:
             if self._on_peer_available_handler:
                 self._on_peer_available_handler(self, peer_id)
-        except Exception as exc:
+        except Exception:
             logger.exception("Error in on_peer_available callback method")
 
     def on_peer_unavailable(self, prot, peer_id: bytes):
@@ -326,7 +323,7 @@ class DatagramEndpoint(object):
         try:
             if self._on_peer_unavailable_handler:
                 self._on_peer_unavailable_handler(self, peer_id)
-        except Exception as exc:
+        except Exception:
             logger.exception("Error in on_peer_unavailable callback method")
 
     def on_message(self, prot, peer_id: bytes, data: bytes, **kwargs) -> None:
@@ -341,7 +338,6 @@ class DatagramEndpoint(object):
         """
         try:
             if self._on_message_handler:
-                # addr = kwargs.get("addr")
                 type_identifier = kwargs.get("type_identifier")
                 data = serialization.loads(
                     data,
@@ -351,5 +347,5 @@ class DatagramEndpoint(object):
                 )
 
                 self._on_message_handler(self, data, peer_id=peer_id, **kwargs)
-        except Exception as exc:
+        except Exception:
             logger.exception("Error in on_message callback method")

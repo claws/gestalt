@@ -5,15 +5,12 @@ This module contains an AMQP message consumer.
 import asyncio
 import logging
 import inspect
-import time
 
 from aio_pika import ExchangeType, IncomingMessage, connect_robust
 from aio_pika.exceptions import AMQPError
 from gestalt.amq import utils
-from gestalt.serialization import loads
 
 from asyncio import AbstractEventLoop
-from aio_pika import Connection, Channel, Exchange, Queue
 from typing import Any, Callable, Optional
 
 MessageHandlerType = Callable[[Any, IncomingMessage], None]
@@ -21,7 +18,7 @@ MessageHandlerType = Callable[[Any, IncomingMessage], None]
 logger = logging.getLogger(__name__)
 
 
-class Consumer(object):
+class Consumer:
     """ The Consumer subscribes for messages from a topic exchange.
 
     The consumer creates a fresh queue, letting the server choose a random
@@ -165,7 +162,7 @@ class Consumer(object):
             if self._on_message_handler:
                 try:
                     payload = utils.decode_message(message)
-                except Exception as exc:
+                except Exception:
                     logger.exception("Problem in message decode function")
                     return
 
@@ -173,7 +170,7 @@ class Consumer(object):
                     maybe_awaitable = self._on_message_handler(payload, message)
                     if inspect.isawaitable(maybe_awaitable):
                         await maybe_awaitable  # type: ignore
-                except Exception as exc:
+                except Exception:
                     logger.exception(f"Problem in user message handler function")
                     return
 

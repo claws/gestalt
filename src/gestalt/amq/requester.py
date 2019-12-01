@@ -5,7 +5,6 @@ forms part of the request/response remote procedure call pattern.
 
 import asyncio
 import functools
-import inspect
 import logging
 import time
 import uuid
@@ -13,7 +12,6 @@ from aio_pika import ExchangeType, connect_robust
 from aio_pika.message import DeliveryMode, IncomingMessage, Message, ReturnedMessage
 from aio_pika.exceptions import AMQPError, DeliveryError
 from gestalt.amq import utils
-from gestalt.serialization import loads
 
 from asyncio import AbstractEventLoop
 from aio_pika import Connection, Channel, Exchange, Queue
@@ -24,7 +22,7 @@ MessageHandlerType = Callable[[Any, IncomingMessage], None]
 logger = logging.getLogger(__name__)
 
 
-class Requester(object):
+class Requester:
     """
     This object is used as the initiator of a service call in the
     Request/Response communications pattern. This object sends request messages
@@ -111,7 +109,7 @@ class Requester(object):
         self.futures = dict()  # type: Dict[str, asyncio.Future]
 
     async def start(self) -> None:
-        """ Start the client """
+        """ Start the requester """
         if self.response_queue:
             # Already running
             return
@@ -176,7 +174,7 @@ class Requester(object):
         self._consumer_tag = await self.response_queue.consume(self.on_response_message)
 
     async def stop(self) -> None:
-        """ Stop the publisher """
+        """ Stop the requester """
         if self.response_queue:
             assert self._consumer_tag is not None
             await self.response_queue.cancel(self._consumer_tag)
@@ -206,9 +204,15 @@ class Requester(object):
         self.exchange = None
 
     def __remove_future(self, correlation_id: str, future: asyncio.Future):
+        """ Discard a response future from the list of pending responses """
         self.futures.pop(correlation_id, None)
 
     def create_future(self) -> Tuple[str, asyncio.Future]:
+        """ Create a future and a unique correlation identifier.
+
+        The correlation identifier is used to associate a response back to the
+        original request.
+        """
         correlation_id = str(uuid.uuid4())
         f = self.loop.create_future()
         self.futures[correlation_id] = f

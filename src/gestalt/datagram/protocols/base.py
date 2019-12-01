@@ -66,7 +66,7 @@ class BaseDatagramProtocol(asyncio.DatagramProtocol):
         try:
             if self._on_peer_available_handler:
                 self._on_peer_available_handler(self, self._identity)
-        except Exception as exc:
+        except Exception:
             logger.exception("Error in on_peer_available callback method")
 
     def connection_lost(self, exc):
@@ -77,7 +77,7 @@ class BaseDatagramProtocol(asyncio.DatagramProtocol):
         try:
             if self._on_peer_unavailable_handler:
                 self._on_peer_unavailable_handler(self, self._identity)
-        except Exception as exc:
+        except Exception:
             logger.exception("Error in on_peer_unavailable callback method")
 
         self.transport = None
@@ -121,7 +121,7 @@ class BaseDatagramProtocol(asyncio.DatagramProtocol):
         try:
             if self._on_message_handler:
                 self._on_message_handler(self, self._identity, data, addr=addr)
-        except Exception as exc:
+        except Exception:
             logger.exception("Error in on_message callback method")
 
     def error_received(self, exc):

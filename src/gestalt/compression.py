@@ -62,7 +62,7 @@ class ICompressor(abc.ABC):
         """ Returns decompressed data """
 
 
-class CompressorRegistry(object):
+class CompressorRegistry:
     """ This registry keeps track of compression strategies.
 
     A convenience name or the specific content-type string can be used to
@@ -111,7 +111,7 @@ class CompressorRegistry(object):
         Raises:
             Exception: If the name_or_type requested is not available.
         """
-        name, content_type = self._resolve(name_or_type)
+        name, _content_type = self._resolve(name_or_type)
         self._default_codec = name
 
     @property
@@ -129,7 +129,7 @@ class CompressorRegistry(object):
         :returns: A compressor object that can encode and decode bytes
           using the named strategy.
         """
-        name, content_type = self._resolve(name_or_type)
+        name, _content_type = self._resolve(name_or_type)
         return self._compressors[name].compressor
 
     def get_codec(self, name_or_type: str):
@@ -141,7 +141,7 @@ class CompressorRegistry(object):
 
         :returns: A codec named tuple.
         """
-        name, content_type = self._resolve(name_or_type)
+        name, _content_type = self._resolve(name_or_type)
         return self._compressors[name]
 
     def compress(
@@ -215,7 +215,7 @@ class CompressorRegistry(object):
         return name, content_type
 
 
-def register_none(registry: CompressorRegistry):
+def register_none(reg: CompressorRegistry):
     """ The compression you have when you don't want compression. """
 
     class NoneCompressor(ICompressor):
@@ -232,10 +232,10 @@ def register_none(registry: CompressorRegistry):
             return data
 
     compressor = NoneCompressor()
-    registry.register(None, compressor, None)
+    reg.register(None, compressor, None)
 
 
-def register_zlib(registry: CompressorRegistry):
+def register_zlib(reg: CompressorRegistry):
     """ Register a compressor/decompressor for zlib compression. """
 
     class ZlibCompressor(ICompressor):
@@ -269,10 +269,10 @@ def register_zlib(registry: CompressorRegistry):
             return data
 
     compressor = ZlibCompressor()
-    registry.register("zlib", compressor, COMPRESSION_ZLIB)
+    reg.register("zlib", compressor, COMPRESSION_ZLIB)
 
 
-def register_deflate(registry: CompressorRegistry):
+def register_deflate(reg: CompressorRegistry):
     """ Register a compressor/decompressor for deflate compression. """
 
     class DeflateCompressor(ICompressor):
@@ -306,10 +306,10 @@ def register_deflate(registry: CompressorRegistry):
             return data
 
     compressor = DeflateCompressor()
-    registry.register("deflate", compressor, COMPRESSION_DEFLATE)
+    reg.register("deflate", compressor, COMPRESSION_DEFLATE)
 
 
-def register_gzip(registry: CompressorRegistry):
+def register_gzip(reg: CompressorRegistry):
     """ Register a compressor/decompressor for gzip compression. """
 
     class GzipCompressor(ICompressor):
@@ -343,10 +343,10 @@ def register_gzip(registry: CompressorRegistry):
             return data
 
     compressor = GzipCompressor()
-    registry.register("gzip", compressor, COMPRESSION_GZIP)
+    reg.register("gzip", compressor, COMPRESSION_GZIP)
 
 
-def register_bz2(registry: CompressorRegistry):
+def register_bz2(reg: CompressorRegistry):
     """ Register a compressor/decompressor for bz2 compression. """
 
     if have_bz2:
@@ -377,10 +377,10 @@ def register_bz2(registry: CompressorRegistry):
                 return data
 
         compressor = Bz2Compressor()
-        registry.register("bzip2", compressor, COMPRESSION_BZ2)
+        reg.register("bzip2", compressor, COMPRESSION_BZ2)
 
 
-def register_lzma(registry: CompressorRegistry):
+def register_lzma(reg: CompressorRegistry):
     """ Register a compressor/decompressor for lzma compression. """
 
     if have_lzma:
@@ -411,10 +411,10 @@ def register_lzma(registry: CompressorRegistry):
                 return data
 
         compressor = LzmaCompressor()
-        registry.register("lzma", compressor, COMPRESSION_LZMA)
+        reg.register("lzma", compressor, COMPRESSION_LZMA)
 
 
-def register_brotli(registry: CompressorRegistry):
+def register_brotli(reg: CompressorRegistry):
     """ Register a compressor/decompressor for brotli compression. """
 
     if have_brotli:
@@ -438,10 +438,10 @@ def register_brotli(registry: CompressorRegistry):
                 return brotli.decompress(data)
 
         compressor = BrotliCompressor()
-        registry.register("brotli", compressor, COMPRESSION_BROTLI)
+        reg.register("brotli", compressor, COMPRESSION_BROTLI)
 
 
-def register_snappy(registry: CompressorRegistry):
+def register_snappy(reg: CompressorRegistry):
     """ Register a compressor/decompressor for snappy compression. """
 
     if have_snappy:
@@ -465,21 +465,21 @@ def register_snappy(registry: CompressorRegistry):
                 return snappy.uncompress(data)
 
         compressor = SnappyCompressor()
-        registry.register("snappy", compressor, COMPRESSION_SNAPPY)
+        reg.register("snappy", compressor, COMPRESSION_SNAPPY)
 
 
-def initialize(registry: CompressorRegistry):
+def initialize(reg: CompressorRegistry):
     """ Register compression methods and set a default """
-    register_none(registry)
-    register_zlib(registry)
-    register_deflate(registry)
-    register_gzip(registry)
-    register_bz2(registry)
-    register_lzma(registry)
-    register_brotli(registry)
-    register_snappy(registry)
+    register_none(reg)
+    register_zlib(reg)
+    register_deflate(reg)
+    register_gzip(reg)
+    register_bz2(reg)
+    register_lzma(reg)
+    register_brotli(reg)
+    register_snappy(reg)
 
-    registry.set_default(None)
+    reg.set_default(None)
 
 
 registry = CompressorRegistry()

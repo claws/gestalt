@@ -23,6 +23,7 @@ install:
   - pip install .[amq,protobuf,msgpack,avro,brotli,snappy,yaml]
 script:
   - make check-style
+  - make check-lint
   - make check-types
   - make check-coverage
   - make docs
