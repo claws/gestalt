@@ -1,5 +1,4 @@
 import asyncio
-import datetime
 import logging
 from gestalt.serialization import CONTENT_TYPE_PROTOBUF
 from gestalt.stream.mti import MtiStreamClient
@@ -42,26 +41,29 @@ if __name__ == "__main__":
         level=getattr(logging, args.log_level.upper()),
     )
 
-    def on_started(client):
+    def on_started(cli: MtiStreamClient):
         print("Client has started")
 
-    def on_stopped(client):
+    def on_stopped(cli: MtiStreamClient):
         print("Client has stopped")
 
-    def on_peer_available(client, peer_id):
+    def on_peer_available(cli: MtiStreamClient, peer_id):
         print(f"Client {peer_id} connected")
 
         # Upon connection, send a message to the server
         protobuf_data = Position(
-            latitude=130.0, longitude=-30.0, altitude=50.0, status=Position.SIMULATED
+            latitude=130.0,
+            longitude=-30.0,
+            altitude=50.0,
+            status=Position.SIMULATED,  # pylint: disable=no-member
         )
         print(f"sending a message: {protobuf_data}")
         client.send(protobuf_data, peer_id=peer_id, type_identifier=type_identifier)
 
-    def on_peer_unavailable(client, peer_id):
+    def on_peer_unavailable(cli: MtiStreamClient, peer_id):
         print(f"Client {peer_id} connected")
 
-    async def on_message(client, data, peer_id, **kwargs) -> None:
+    async def on_message(cli: MtiStreamClient, data, peer_id, **kwargs) -> None:
         print(f"Client received msg from {peer_id}: {data}")
 
         # Wait briefly before sending a reply to the reply!
@@ -71,7 +73,7 @@ if __name__ == "__main__":
             latitude=data.latitude - 0.1,
             longitude=data.longitude - 0.1,
             altitude=data.altitude - 0.1,
-            status=Position.SIMULATED,
+            status=Position.SIMULATED,  # pylint: disable=no-member
         )
 
         client.send(protobuf_data, peer_id=peer_id, type_identifier=type_identifier)

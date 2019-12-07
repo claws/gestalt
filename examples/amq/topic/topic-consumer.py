@@ -1,4 +1,3 @@
-import asyncio
 import logging
 from gestalt import serialization
 from gestalt.amq.consumer import Consumer
@@ -67,7 +66,7 @@ if __name__ == "__main__":
         level=numeric_level,
     )
 
-    c = Consumer(
+    consumer = Consumer(
         amqp_url=args.amqp_url,
         exchange_name=args.exchange_name,
         routing_key=args.routing_key,
@@ -88,4 +87,4 @@ if __name__ == "__main__":
     )
     type_identifier = serializer.registry.register_message(Position)
 
-    run(c.start, finalize=c.stop)
+    run(consumer.start, finalize=consumer.stop)

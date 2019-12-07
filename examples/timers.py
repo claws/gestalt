@@ -20,8 +20,8 @@ async def stop_demo(t1, t2, t3):
 
 if __name__ == "__main__":
 
-    t1 = Timer(0.5, timerFunction, "oneshot")
-    t2 = Timer(0.75, timerFunction, "thrice", repeats=3)
-    t3 = Timer(1.0, timerFunction, "forever", forever=True)
+    timer1 = Timer(0.5, timerFunction, "oneshot")
+    timer2 = Timer(0.75, timerFunction, "thrice", repeats=3)
+    timer3 = Timer(1.0, timerFunction, "forever", forever=True)
 
-    run(start_demo(t1, t2, t3), finalize=stop_demo(t1, t2, t3))
+    run(start_demo(timer1, timer2, timer3), finalize=stop_demo(timer1, timer2, timer3))

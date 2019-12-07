@@ -1,4 +1,3 @@
-import asyncio
 import logging
 from gestalt.serialization import CONTENT_TYPE_PROTOBUF
 from gestalt.datagram.mti import MtiDatagramEndpoint
@@ -45,11 +44,11 @@ if __name__ == "__main__":
         addr = kwargs.get("addr")
         print(f"Received msg from {addr}: {data}")
 
-    r = MtiDatagramEndpoint(on_message=on_message, content_type=CONTENT_TYPE_PROTOBUF)
+    ep = MtiDatagramEndpoint(on_message=on_message, content_type=CONTENT_TYPE_PROTOBUF)
 
     # Associate a message object with a unique message type identifier.
     type_identifier = 1
-    r.register_message(type_identifier, Position)
+    ep.register_message(type_identifier, Position)
 
-    local_addr = (args.host, args.port)
-    run(r.start(local_addr=local_addr), finalize=r.stop)
+    local_address = (args.host, args.port)
+    run(ep.start(local_addr=local_address), finalize=ep.stop)

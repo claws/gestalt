@@ -1,5 +1,4 @@
 import asyncio
-import datetime
 import logging
 from gestalt.serialization import CONTENT_TYPE_PROTOBUF
 from gestalt.datagram.mti import MtiDatagramEndpoint
@@ -42,31 +41,31 @@ if __name__ == "__main__":
         level=getattr(logging, args.log_level.upper()),
     )
 
-    s = MtiDatagramEndpoint(content_type=CONTENT_TYPE_PROTOBUF)
+    ep = MtiDatagramEndpoint(content_type=CONTENT_TYPE_PROTOBUF)
 
     # Associate a message object with a unique message type identifier.
     type_identifier = 1
-    s.register_message(type_identifier, Position)
+    ep.register_message(type_identifier, Position)
 
-    async def message_producer(s) -> None:
+    async def message_producer(e) -> None:
         """ Generate a new message and send it """
         while True:
             protobuf_data = Position(
                 latitude=130.0,
                 longitude=-30.0,
                 altitude=50.0,
-                status=Position.SIMULATED,
+                status=Position.SIMULATED,  # pylint: disable=no-member
             )
             print(f"sending a message: {protobuf_data}")
-            s.send(protobuf_data, type_identifier=type_identifier)
+            e.send(protobuf_data, type_identifier=type_identifier)
             await asyncio.sleep(1.0)
 
-    async def start_producing(s, remote_addr):
-        await s.start(remote_addr=remote_addr)
+    async def start_producing(e, remote_addr):
+        await e.start(remote_addr=remote_addr)
 
         # Start producing messages
         loop = asyncio.get_event_loop()
-        loop.create_task(message_producer(s))
+        loop.create_task(message_producer(e))
 
-    remote_addr = (args.host, args.port)
-    run(start_producing(s, remote_addr), finalize=s.stop)
+    remote_address = (args.host, args.port)
+    run(start_producing(ep, remote_address), finalize=ep.stop)

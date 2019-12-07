@@ -1,5 +1,4 @@
 import asyncio
-import datetime
 import logging
 from gestalt.serialization import CONTENT_TYPE_PROTOBUF
 from gestalt.stream.mti import MtiStreamServer
@@ -64,7 +63,7 @@ if __name__ == "__main__":
             latitude=data.latitude + 0.1,
             longitude=data.longitude + 0.1,
             altitude=data.altitude + 0.1,
-            status=Position.SIMULATED,
+            status=Position.SIMULATED,  # pylint: disable=no-member
         )
         print(f"sending a message: {protobuf_data}")
         server.send(protobuf_data, peer_id=peer_id, type_identifier=type_identifier)
