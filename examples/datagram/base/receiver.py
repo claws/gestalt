@@ -1,4 +1,3 @@
-import asyncio
 import logging
 from gestalt.serialization import CONTENT_TYPE_JSON
 from gestalt.datagram.endpoint import DatagramEndpoint
@@ -44,7 +43,7 @@ if __name__ == "__main__":
         addr = kwargs.get("addr")
         print(f"Received msg from {addr}: {data}")
 
-    r = DatagramEndpoint(on_message=on_message, content_type=CONTENT_TYPE_JSON)
+    ep = DatagramEndpoint(on_message=on_message, content_type=CONTENT_TYPE_JSON)
 
     local_addr = (args.host, args.port)
-    run(r.start(local_addr=local_addr), finalize=r.stop)
+    run(ep.start(local_addr=local_addr), finalize=ep.stop)

@@ -91,7 +91,7 @@ if __name__ == "__main__":
         level=numeric_level,
     )
 
-    p = Producer(
+    producer = Producer(
         amqp_url=args.amqp_url,
         exchange_name=args.exchange_name,
         routing_key=args.routing_key,
@@ -116,4 +116,4 @@ if __name__ == "__main__":
         loop = asyncio.get_event_loop()
         loop.create_task(message_producer(p))
 
-    run(start_producing(p), finalize=p.stop)
+    run(start_producing(producer), finalize=producer.stop)

@@ -41,13 +41,13 @@ if __name__ == "__main__":
         level=getattr(logging, args.log_level.upper()),
     )
 
-    def on_started(client):
+    def on_started(cli: LineDelimitedStreamClient):
         print("Client has started")
 
-    def on_stopped(client):
+    def on_stopped(cli: LineDelimitedStreamClient):
         print("Client has stopped")
 
-    def on_peer_available(client, peer_id):
+    def on_peer_available(cli: LineDelimitedStreamClient, peer_id):
         print(f"Client {peer_id} connected")
 
         # Upon connection, send a message to the peer (the server)
@@ -55,10 +55,12 @@ if __name__ == "__main__":
         msg = now.isoformat()
         client.send(msg.encode(), peer_id=peer_id)
 
-    def on_peer_unavailable(client, peer_id):
+    def on_peer_unavailable(cli: LineDelimitedStreamClient, peer_id):
         print(f"Client {peer_id} connected")
 
-    async def on_message(client, data, peer_id, **kwargs) -> None:
+    async def on_message(
+        cli: LineDelimitedStreamClient, data, peer_id, **kwargs
+    ) -> None:
         msg = data.decode()
         print(f"Client received msg from {peer_id}: {msg}")
 

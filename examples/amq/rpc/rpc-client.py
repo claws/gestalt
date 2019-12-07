@@ -1,17 +1,11 @@
 import argparse
 import asyncio
-import datetime
 import logging
 import random
-import time
-from asyncio import CancelledError, TimeoutError
 from aio_pika.exceptions import DeliveryError
 from gestalt.amq.requester import Requester
 from gestalt.serialization import CONTENT_TYPE_JSON
 from gestalt.runner import run
-
-from aio_pika import IncomingMessage
-from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +46,7 @@ if __name__ == "__main__":
         level=getattr(logging, args.log_level.upper()),
     )
 
-    r = Requester(
+    requester = Requester(
         amqp_url=args.amqp_url,
         exchange_name=args.exchange_name,
         service_name=args.service_name,
@@ -79,9 +73,9 @@ if __name__ == "__main__":
                     request_msg, expiration=2, service_name=service_name
                 )
                 logger.info(f"Received response: {response_msg}")
-            except TimeoutError as exc:
+            except asyncio.TimeoutError as exc:
                 logger.info(f"Request was timed-out: {exc}")
-            except CancelledError as exc:
+            except asyncio.CancelledError as exc:
                 logger.info(f"Request was cancelled: {exc}")
             except DeliveryError as exc:
                 logger.info(f"Request delivery error: {exc}")
@@ -94,4 +88,4 @@ if __name__ == "__main__":
         await asyncio.sleep(1)
         asyncio.get_event_loop().create_task(message_requester(r))
 
-    run(start_requesting(r), finalize=r.stop)
+    run(start_requesting(requester), finalize=requester.stop)

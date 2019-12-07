@@ -45,24 +45,24 @@ if __name__ == "__main__":
         level=getattr(logging, args.log_level.upper()),
     )
 
-    s = DatagramEndpoint(content_type=CONTENT_TYPE_JSON)
+    ep = DatagramEndpoint(content_type=CONTENT_TYPE_JSON)
 
-    async def message_producer(s, bcast_addr) -> None:
+    async def message_producer(e, bcast_addr) -> None:
         """ Generate a new message and send it """
         while True:
             now = datetime.datetime.now(tz=datetime.timezone.utc)
             json_msg = dict(timestamp=now.isoformat())
             print(f"sending message: {json_msg}")
-            s.send(json_msg, addr=bcast_addr)
+            e.send(json_msg, addr=bcast_addr)
             await asyncio.sleep(1.0)
 
-    async def start_producing(s, local_addr, bcast_addr):
-        await s.start(local_addr=local_addr, allow_broadcast=True)
+    async def start_producing(e, local_addr, bcast_addr):
+        await e.start(local_addr=local_addr, allow_broadcast=True)
 
         # Start producing messages
         loop = asyncio.get_event_loop()
-        loop.create_task(message_producer(s, bcast_addr))
+        loop.create_task(message_producer(e, bcast_addr))
 
-    local_addr = ("0.0.0.0", 0)
-    bcast_addr = (args.broadcast_host, args.broadcast_port)
-    run(start_producing(s, local_addr, bcast_addr), finalize=s.stop)
+    local_address = ("0.0.0.0", 0)
+    broadcast_address = (args.broadcast_host, args.broadcast_port)
+    run(start_producing(ep, local_address, broadcast_address), finalize=ep.stop)

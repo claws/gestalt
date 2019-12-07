@@ -51,7 +51,7 @@ check-types:
 # help: check-lint                - run static analysis checks
 .PHONY: check-lint
 check-lint:
-	@pylint --rcfile=.pylintrc gestalt
+	@pylint --rcfile=.pylintrc --ignore position_pb2.py gestalt setup.py ./examples
 
 
 # help: check-coverage            - check collect code coverage

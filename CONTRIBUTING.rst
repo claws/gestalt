@@ -107,6 +107,12 @@ is as follows.
 
     See the :ref:`style-compliance-label` section for more information.
 
+  * The change should pass pylint static checking.
+
+    .. code-block:: console
+
+        (venv) $ make check-lint
+
   * The change should include type annotations where appropriate.
     Perform type annotations check.
 

@@ -67,7 +67,7 @@ class LineDelimitedStreamProtocol(BaseStreamProtocol):
             try:
                 if self._on_message_handler:
                     self._on_message_handler(self, self._identity, msg)
-            except Exception as exc:
+            except Exception:
                 logger.exception("Error in on_message callback method")
 
 

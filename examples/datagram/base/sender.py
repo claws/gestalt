@@ -41,23 +41,23 @@ if __name__ == "__main__":
         level=getattr(logging, args.log_level.upper()),
     )
 
-    s = DatagramEndpoint(content_type=CONTENT_TYPE_JSON)
+    ep = DatagramEndpoint(content_type=CONTENT_TYPE_JSON)
 
-    async def message_producer(s) -> None:
+    async def message_producer(e) -> None:
         """ Generate a new message and send it """
         while True:
             now = datetime.datetime.now(tz=datetime.timezone.utc)
             json_msg = dict(timestamp=now.isoformat())
             print(f"sending a message: {json_msg}")
-            s.send(json_msg)
+            e.send(json_msg)
             await asyncio.sleep(1.0)
 
-    async def start_producing(s, remote_addr):
-        await s.start(remote_addr=remote_addr)
+    async def start_producing(e, remote_addr):
+        await e.start(remote_addr=remote_addr)
 
         # Start producing messages
         loop = asyncio.get_event_loop()
-        loop.create_task(message_producer(s))
+        loop.create_task(message_producer(e))
 
-    remote_addr = (args.host, args.port)
-    run(start_producing(s, remote_addr), finalize=s.stop)
+    remote_address = (args.host, args.port)
+    run(start_producing(ep, remote_address), finalize=ep.stop)

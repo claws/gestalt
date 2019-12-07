@@ -1,7 +1,5 @@
 import argparse
-import asyncio
 import logging
-import socket
 from gestalt.runner import run
 from gestalt.serialization import CONTENT_TYPE_JSON
 from gestalt.datagram.endpoint import DatagramEndpoint
@@ -14,7 +12,7 @@ if __name__ == "__main__":
         "--host",
         metavar="<host>",
         type=str,
-        default="0.0.0.0",  # socket.gethostbyname(socket.gethostname()),
+        default="0.0.0.0",
         help="The host the receiver will running on",
     )
     parser.add_argument(
@@ -44,7 +42,7 @@ if __name__ == "__main__":
         addr = kwargs.get("addr")
         print(f"Received msg from {addr}: {data}")
 
-    r = DatagramEndpoint(on_message=on_message, content_type=CONTENT_TYPE_JSON)
+    ep = DatagramEndpoint(on_message=on_message, content_type=CONTENT_TYPE_JSON)
 
-    local_addr = (args.host, args.port)
-    run(r.start(local_addr=local_addr, reuse_port=True), finalize=r.stop)
+    local_address = (args.host, args.port)
+    run(ep.start(local_addr=local_address, reuse_port=True), finalize=ep.stop)
