@@ -1,4 +1,4 @@
-import json
+import ssl
 import unittest
 import unittest.mock
 from gestalt import compression
@@ -14,7 +14,7 @@ class RabbitmqUtilitiesTestCase(unittest.TestCase):
             mock_dumps.side_effect = Exception("Boom!")
             with self.assertRaises(Exception):
                 headers = {}
-                payload, content_type, content_encoding = utils.encode_payload(
+                utils.encode_payload(
                     TEXT_DATA,
                     content_type=serialization.CONTENT_TYPE_TEXT,
                     compression=compression.COMPRESSION_ZLIB,
@@ -25,7 +25,7 @@ class RabbitmqUtilitiesTestCase(unittest.TestCase):
             mock_compress.side_effect = Exception("Boom!")
             with self.assertRaises(Exception):
                 headers = {}
-                payload, content_type, content_encoding = utils.encode_payload(
+                utils.encode_payload(
                     TEXT_DATA,
                     content_type=serialization.CONTENT_TYPE_TEXT,
                     compression=compression.COMPRESSION_ZLIB,
@@ -47,7 +47,7 @@ class RabbitmqUtilitiesTestCase(unittest.TestCase):
             mock_decompress.side_effect = Exception("Boom!")
             with self.assertRaises(Exception):
                 headers = {}
-                data = utils.decode_payload(
+                utils.decode_payload(
                     payload,
                     compression=compression_mime_type,
                     content_type=content_type,
@@ -57,7 +57,7 @@ class RabbitmqUtilitiesTestCase(unittest.TestCase):
         with unittest.mock.patch("gestalt.amq.utils.loads") as mock_loads:
             mock_loads.side_effect = Exception("Boom!")
             with self.assertRaises(Exception):
-                data = utils.decode_payload(
+                utils.decode_payload(
                     payload,
                     compression=compression_mime_type,
                     content_type=content_type,
@@ -168,13 +168,16 @@ class RabbitmqUtilitiesTestCase(unittest.TestCase):
         from position_pb2 import Position
 
         PROTOBUF_DATA = Position(
-            latitude=130.0, longitude=-30.0, altitude=50.0, status=Position.SIMULATED
+            latitude=130.0,
+            longitude=-30.0,
+            altitude=50.0,
+            status=Position.SIMULATED,  # pylint: disable=no-member
         )
 
         serializer = serialization.registry.get_serializer(
             serialization.CONTENT_TYPE_PROTOBUF
         )
-        type_identifier = serializer.registry.register_message(Position)
+        _type_identifier = serializer.registry.register_message(Position)
 
         # Protobuf is already a compact binary format so there is nothing
         # to be gained by compressing it further.
@@ -274,7 +277,7 @@ class RabbitmqUtilitiesTestCase(unittest.TestCase):
             url, "amqp://guest:guest@127.0.0.1:5672//?heartbeat_interval=2"
         )
 
-    def test_create_url_with_connection_attempts_andheartbeat_interval(self):
+    def test_create_url_with_connection_attempts_and_heartbeat_interval(self):
         url = utils.build_amqp_url(connection_attempts=5, heartbeat_interval=2)
         self.assertEqual(
             url,
@@ -292,12 +295,29 @@ class RabbitmqUtilitiesTestCase(unittest.TestCase):
         self.assertEqual(url, "amqp://myuser:mypass@my.host:5673//")
 
     def test_create_url_with_env_settings(self):
+        username = "user1"
+        password = "user1_password"
+        hostname = "rando.host"
+        port = "15672"
         values = {
-            "RABBITMQ_USER": "user1",
-            "RABBITMQ_PASS": "user1_password",
-            "RABBITMQ_HOST": "rando.host",
-            "RABBITMQ_PORT": "15672",
+            "RABBITMQ_USER": username,
+            "RABBITMQ_PASS": password,
+            "RABBITMQ_HOST": hostname,
+            "RABBITMQ_PORT": port,
         }
         with unittest.mock.patch.dict("os.environ", values=values, clear=True):
             url = utils.build_amqp_url()
-            self.assertEqual(url, "amqp://user1:user1_password@rando.host:15672//")
+            self.assertEqual(url, f"amqp://{username}:{password}@{hostname}:{port}//")
+
+    def test_create_url_with_ssl_options(self):
+        ssl_options = dict(
+            ca_certs="/etc/ssl/cacert.pem",
+            certfile="/etc/ssl/mycert.pem",
+            cert_reqs=ssl.CERT_REQUIRED,
+            keyfile="/etc/ssl/mykey.pem",
+        )
+        url = utils.build_amqp_url(ssl_options=ssl_options)
+        self.assertEqual(
+            url,
+            "amqps://guest:guest@127.0.0.1:5671//?ca_certs=/etc/ssl/cacert.pem&certfile=/etc/ssl/mycert.pem&cert_reqs=2&keyfile=/etc/ssl/mykey.pem",
+        )
