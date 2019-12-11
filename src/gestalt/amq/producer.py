@@ -34,7 +34,11 @@ class Producer:
         loop: AbstractEventLoop = None,
     ) -> None:
         """
-        :param amqp_url: The AMQP URL.
+        :param amqp_url: A URL defining the AMQP connection parameters.
+          If no URL is specified then a default setting is used which is
+          suitable for connecting to RabbitMQ on localhost on port 5672,
+          with a default username and password of guest and guest and a
+          default virtual host of /.
 
         :param exchange_name: The name of the exchange to publish messages to.
 

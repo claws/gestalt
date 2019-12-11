@@ -1,3 +1,4 @@
+import enum
 import os
 from gestalt.compression import compress, decompress
 from gestalt.serialization import (
@@ -7,7 +8,7 @@ from gestalt.serialization import (
     CONTENT_TYPE_PROTOBUF,
     CONTENT_TYPE_AVRO,
 )
-
+from yarl import URL
 from typing import Any, Optional, Tuple
 
 
@@ -19,42 +20,65 @@ def build_amqp_url(
     virtual_host: str = None,
     connection_attempts: int = None,
     heartbeat_interval: int = None,
+    ssl_options: dict = None,
 ) -> str:
     """
     Create a AMQP connection URL from parameters.
 
     If no parameters are passed to optional arguments then the environment is
-    inspected for settings prefixed with ``RABBITMQ_``.
+    inspected for settings prefixed with ``RABBITMQ_`` and then defaults
+    values are used.
 
-    :param user: Login credentials username.
+    :param user: Login credentials username. Default value is 'guest'.
 
-    :param password: Login credentials password.
+    :param password: Login credentials password. Default value is 'guest'.
 
-    :param host: AMQP Broker host.
+    :param host: AMQP Broker host. Default value is 127.0.0.1.
 
-    :param port: AMQP Broker port.
+    :param port: AMQP Broker port. Default value is 5672.
 
-    :param virtualhost: AMQP virtualhost to use.
+    :param virtualhost: AMQP virtualhost to use. Default value is '/'
 
+    :param connection_attempts: The number of connections attempts.
+      No default value.
+
+    :param heartbeat_interval: The interval to use between heartbeat
+      requests. No default value.
+
+    :param ssl_options: A dict of public ssl context-related values for the
+      SSL connection. Available keys are:
+        - ca_certs as a string containing path to ca certificate file
+        - cert_reqs
+        - certfile
+        - keyfile ia a string containing the path to key file
+        - ssl_version
     """
-    user = user if user else os.getenv("RABBITMQ_USER", "guest")
-    password = password if password else os.getenv("RABBITMQ_PASS", "guest")
-    host = host if host else os.getenv("RABBITMQ_HOST", "127.0.0.1")
-    port = port if port else int(os.getenv("RABBITMQ_PORT", "5672"))
-    virtual_host = virtual_host if virtual_host else "/"
-
-    options = []
+    options = {}
     if connection_attempts:
-        options.append(f"connection_attempts={connection_attempts}")
+        options["connection_attempts"] = connection_attempts
     if heartbeat_interval:
-        options.append(f"heartbeat_interval={heartbeat_interval}")
+        options["heartbeat_interval"] = heartbeat_interval
+    if ssl_options:
+        # Convert any ssl enumerations to a scalar value prior to forming
+        # the url.
+        for k, v in ssl_options.items():
+            if isinstance(v, enum.Enum):
+                ssl_options[k] = v.value
+        options.update(ssl_options)
 
-    options_str = ""
-    if options:
-        options_str = "?" + "&".join(options)
+    default_port = 5671 if ssl_options else 5672
 
-    amqp_url = f"amqp://{user}:{password}@{host}:{port}/{virtual_host}{options_str}"
-    return amqp_url
+    url = URL.build(
+        scheme="amqps" if ssl_options else "amqp",
+        host=host if host else os.getenv("RABBITMQ_HOST", "127.0.0.1"),
+        port=port if port else int(os.getenv("RABBITMQ_PORT", str(default_port))),
+        user=user if user else os.getenv("RABBITMQ_USER", "guest"),
+        password=password if password else os.getenv("RABBITMQ_PASS", "guest"),
+        path=f"/{virtual_host}" if virtual_host else "//",
+        query=options,
+    )
+
+    return str(url)
 
 
 def encode_payload(
