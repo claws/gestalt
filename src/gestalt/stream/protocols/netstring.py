@@ -36,7 +36,7 @@ class NetstringStreamProtocol(BaseStreamProtocol):
         |     uint32      |                      |
         +-----------------+----------------------+
 
-    Messages with a payload size of zero are invalid.
+    Messages with a payload size of zero are considered invalid.
 
     Upon extracting a message from the stream the protocol passes the message
     payload data to the on_message handler.
@@ -57,6 +57,7 @@ class NetstringStreamProtocol(BaseStreamProtocol):
         )
         self._buffer = bytearray()
         self._state = ProtocolStates.WAIT_HEADER
+        self.msg_len = 0
 
     def send(
         self, data: bytes, add_frame_header=True, **kwargs
@@ -70,6 +71,12 @@ class NetstringStreamProtocol(BaseStreamProtocol):
         """
         if not isinstance(data, bytes):
             logger.error(f"data must be bytes - can't send message. data={data}")
+            return
+
+        if not data:
+            logger.error(
+                f"data must contain at least 1 byte - can't send empty message."
+            )
             return
 
         header = struct.pack(NETSTRING_HEADER_FORMAT, len(data))
@@ -101,14 +108,14 @@ class NetstringStreamProtocol(BaseStreamProtocol):
                     # Remember that msg_len value represents the length of
                     # the payload, not the total message length which has the
                     # frame header too.
-                    msg_len = struct.unpack(
+                    self.msg_len = struct.unpack(
                         NETSTRING_HEADER_FORMAT, self._buffer[:NETSTRING_HEADER_SIZE]
                     )[0]
 
-                    if msg_len == 0 or msg_len > MAX_MSG_SIZE:
+                    if self.msg_len == 0 or self.msg_len > MAX_MSG_SIZE:
                         # msg has no body or is too big
                         logger.error(
-                            f"Msg size ({msg_len}) is zero or exceeds maximum msg size. "
+                            f"Msg size ({self.msg_len}) is zero or exceeds maximum msg size. "
                             f"Disconnecting peer {self._identity}."
                         )
                         self.close()
@@ -122,7 +129,7 @@ class NetstringStreamProtocol(BaseStreamProtocol):
                     break
 
             elif self._state == ProtocolStates.WAIT_PAYLOAD:
-                eom = NETSTRING_HEADER_SIZE + msg_len
+                eom = NETSTRING_HEADER_SIZE + self.msg_len
                 if len(self._buffer) >= eom:
                     msg = bytes(self._buffer[NETSTRING_HEADER_SIZE:eom])
                     self._buffer = self._buffer[eom:]
