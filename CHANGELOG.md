@@ -4,6 +4,13 @@ Notable changes to this project will be documented in this file.
 
 ### Version History
 
+#### 20.1.0
+
+- Update package to support Python3.8
+- Use yarl package for URLs.
+- Add linting to improve code sustainment.
+- Fix bug in stream protocols that affected msg_len in scenarios where messages were fragmented.
+
 #### 19.9.2
 
 - Fix markdown displayed on PyPI.
