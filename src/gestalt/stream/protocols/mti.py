@@ -69,6 +69,8 @@ class MtiStreamProtocol(BaseStreamProtocol):
         )
         self._buffer = bytearray()
         self._state = ProtocolStates.WAIT_HEADER
+        self.msg_len = 0
+        self.msg_id = 0
 
     def send(
         self, data: bytes, type_identifier: int = 0, **kwargs
@@ -115,11 +117,11 @@ class MtiStreamProtocol(BaseStreamProtocol):
                 if len(self._buffer) >= MTI_HEADER_SIZE:
                     # The msg_len value represents the length of the payload.
                     # It does not include the length of the frame header.
-                    msg_len, msg_id = struct.unpack(
+                    self.msg_len, self.msg_id = struct.unpack(
                         MTI_HEADER_FORMAT, self._buffer[:MTI_HEADER_SIZE]
                     )
 
-                    if msg_len == 0:
+                    if self.msg_len == 0:
                         # msg has no body
                         eom = MTI_HEADER_SIZE
                         self._buffer = self._buffer[eom:]
@@ -129,14 +131,14 @@ class MtiStreamProtocol(BaseStreamProtocol):
                         try:
                             if self._on_message_handler:
                                 self._on_message_handler(
-                                    self, self._identity, b"", identifier=msg_id
+                                    self, self._identity, b"", identifier=self.msg_id
                                 )
                         except Exception:
                             logger.exception("Error in on_message callback method")
 
-                    elif msg_len > MAX_MSG_SIZE:
+                    elif self.msg_len > MAX_MSG_SIZE:
                         logger.error(
-                            f"Msg size ({msg_len}) exceeds maximum allowed msg size. "
+                            f"Msg size ({self.msg_len}) exceeds maximum allowed msg size. "
                             f"Disconnecting peer {self._identity}."
                         )
                         self.close()
@@ -149,7 +151,7 @@ class MtiStreamProtocol(BaseStreamProtocol):
                     break
 
             elif self._state == ProtocolStates.WAIT_PAYLOAD:
-                eom = MTI_HEADER_SIZE + msg_len
+                eom = MTI_HEADER_SIZE + self.msg_len
                 if len(self._buffer) >= eom:
                     msg = bytes(self._buffer[MTI_HEADER_SIZE:eom])
                     self._buffer = self._buffer[eom:]
@@ -159,7 +161,7 @@ class MtiStreamProtocol(BaseStreamProtocol):
                     try:
                         if self._on_message_handler:
                             self._on_message_handler(
-                                self, self._identity, msg, type_identifier=msg_id
+                                self, self._identity, msg, type_identifier=self.msg_id
                             )
                     except Exception:
                         logger.exception("Error in on_message callback method")

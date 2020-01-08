@@ -33,12 +33,12 @@ class NetstringStreamEndpointTestCase(asynctest.TestCase):
 
         await server_ep.start()
         self.assertTrue(server_on_started_mock.called)
-        (args, kwargs) = server_on_started_mock.call_args
+        (args, _kwargs) = server_on_started_mock.call_args
         self.assertIs(args[0], server_ep)
         server_on_started_mock.reset_mock()
 
         self.assertTrue(server_ep.running)
-        address, port = server_ep.bindings[0]
+        _address, _port = server_ep.bindings[0]
 
         # Check that starting a server that is already started does not
         # have any consequences
@@ -81,7 +81,7 @@ class NetstringStreamEndpointTestCase(asynctest.TestCase):
                 on_peer_unavailable=server_on_peer_unavailable_mock,
             )
 
-            with self.assertLogs("gestalt.stream.endpoint", level=logging.ERROR) as log:
+            with self.assertLogs("gestalt.stream.endpoint", level=logging.ERROR):
                 with self.assertRaises(Exception):
                     await server_ep.start(addr=host, port=occupied_port)
 
