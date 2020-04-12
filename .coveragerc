@@ -1,10 +1,7 @@
 [run]
 branch = True
 source =
-    src/gestalt
-omit =
-    venv/*
-
+    gestalt
 
 [paths]
 source =

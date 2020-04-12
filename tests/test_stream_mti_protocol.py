@@ -41,7 +41,7 @@ class MtiStreamProtocolTestCase(unittest.TestCase):
     def test_empty_message_can_be_received(self):
         on_message_mock = unittest.mock.Mock()
 
-        p = MtiStreamProtocol(on_message=on_message_mock,)
+        p = MtiStreamProtocol(on_message=on_message_mock)
 
         mti_msg = create_mti_message(42, b"")
 
@@ -53,7 +53,7 @@ class MtiStreamProtocolTestCase(unittest.TestCase):
     def test_message_received_in_worst_case_delivery_scenario(self):
         on_message_mock = unittest.mock.Mock()
 
-        p = MtiStreamProtocol(on_message=on_message_mock,)
+        p = MtiStreamProtocol(on_message=on_message_mock)
 
         mti_msg = create_mti_message(42, b"Hello World")
 

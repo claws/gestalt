@@ -1,13 +1,11 @@
 import asyncio
 import asynctest
 import datetime
-import logging
 import unittest.mock
-from gestalt import serialization
 from gestalt.amq.requester import Requester
 from gestalt.amq.responder import Responder
 from gestalt.compression import COMPRESSION_GZIP, COMPRESSION_BZ2
-from gestalt.serialization import CONTENT_TYPE_JSON, registry
+from gestalt.serialization import CONTENT_TYPE_JSON
 from aio_pika.exceptions import DeliveryError
 
 try:
@@ -27,13 +25,13 @@ def setUpModule():
     """ Check RabbitMQ service is available """
 
     async def is_rabbitmq_available():
-        global RABBITMQ_AVAILABLE
+        global RABBITMQ_AVAILABLE  # pylint: disable=global-statement
         try:
             conn = aio_pika.Connection(AMQP_URL)
             await conn.connect(timeout=0.1)
             await conn.close()
             RABBITMQ_AVAILABLE = True
-        except Exception as exc:
+        except Exception:
             pass
 
     loop = asyncio.new_event_loop()
@@ -123,6 +121,7 @@ class RabbitmqRequestReplyTestCase(asynctest.TestCase):
             amqp_url=AMQP_URL,
             service_name=service_name,
             serialization=CONTENT_TYPE_JSON,
+            compression=COMPRESSION_GZIP,
         )
 
         async def on_request(payload, message):
@@ -135,6 +134,7 @@ class RabbitmqRequestReplyTestCase(asynctest.TestCase):
             amqp_url=AMQP_URL,
             service_name=service_name,
             serialization=CONTENT_TYPE_JSON,
+            compression=COMPRESSION_BZ2,
             on_request=on_request,
         )
 

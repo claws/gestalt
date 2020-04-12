@@ -58,7 +58,7 @@ check-lint:
 .PHONY: check-coverage
 check-coverage: generate certs
 	@coverage erase
-	@coverage run -m unittest discover -s tests -v
+	@PYTHONPATH=src coverage run -m unittest discover -s tests -v
 	@coverage html
 	@coverage report
 

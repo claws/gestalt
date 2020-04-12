@@ -24,11 +24,7 @@ def get_long_description() -> str:
     readme_file = THIS_DIR / "README.md"
     with open(readme_file, encoding="utf8") as fd:
         readme = fd.read()
-    changes_file = THIS_DIR / "CHANGELOG.md"
-    with open(changes_file, encoding="utf8") as fd:
-        changes = fd.read()
-
-    return "\n\n".join([readme, changes])
+    return readme
 
 
 def get_requirements(requirements_file: str) -> str:

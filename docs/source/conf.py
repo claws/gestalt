@@ -2,16 +2,10 @@
 # -*- coding: utf-8 -*-
 #
 
-# If extensions (or modules to document with autodoc) are in another directory,
-# add these directories to sys.path here. If the directory is relative to the
-# documentation root, use os.path.abspath to make it absolute, like shown here.
-#
 import os
 import re
-import sys
+import alabaster
 from sphinx.ext import apidoc
-
-# sys.path.insert(0, os.path.abspath('.'))
 
 
 regexp = re.compile(r".*__version__ = [\'\"](.*?)[\'\"]", re.S)
@@ -32,7 +26,7 @@ with open(init_file, "r") as f:
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ["sphinx.ext.autodoc", "sphinx.ext.viewcode", "m2r"]
+extensions = ["sphinx.ext.autodoc", "sphinx.ext.viewcode"]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -108,6 +102,8 @@ html_theme_options = {
     "page_width": "80%",
 }
 
+html_theme_path = [alabaster.get_path()]
+
 html_static_path = ["_static"]
 
 # Custom sidebar templates, maps document names to template names.
@@ -119,8 +115,8 @@ html_sidebars = {"**": ["about.html", "navigation.html"]}
 
 
 def run_apidoc(_):
-    output_path = os.path.join(repo_root, "docs", "source", "api")
-    apidoc.main(["-o", output_path, "-f", pkg_root])
+    argv = ["-f", "-e", "-M", "-o", "source/api", "../src/gestalt"]
+    apidoc.main(argv)
 
 
 def setup(app):

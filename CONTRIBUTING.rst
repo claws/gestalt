@@ -82,6 +82,8 @@ is as follows.
         $ docker pull rabbitmq:3-management
         $ docker run -d -p 5672:5672 -p 15672:15672 rabbitmq:3-management
 
+    It takes a few seconds for the container to become ready.
+
     Then execute the test suite.
 
     .. code-block:: console

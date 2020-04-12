@@ -1,7 +1,6 @@
 import asyncio
 import asynctest
 import logging
-import socket
 import unittest.mock
 from gestalt import serialization
 from gestalt.datagram.netstring import NetstringDatagramEndpoint
@@ -34,7 +33,7 @@ class NetstringDatagramEndpointTestCase(asynctest.TestCase):
         self.assertTrue(receiver_on_started_mock.called)
         self.assertTrue(receiver_on_peer_available_mock.called)
 
-        address, port = receiver_ep.bindings[0]
+        _address, _port = receiver_ep.bindings[0]
 
         # Check that starting a server that is already started does not
         # have any consequences
@@ -69,12 +68,10 @@ class NetstringDatagramEndpointTestCase(asynctest.TestCase):
                 on_peer_unavailable=receiver_on_peer_unavailable_mock,
             )
 
-            with self.assertLogs(
-                "gestalt.datagram.endpoint", level=logging.ERROR
-            ) as log:
+            with self.assertLogs("gestalt.datagram.endpoint", level=logging.ERROR):
                 with self.assertRaises(Exception):
                     await receiver_ep.start(local_addr=(host, occupied_port))
-                    address, port = receiver_ep.bindings[0]
+                    _address, _port = receiver_ep.bindings[0]
 
             self.assertFalse(receiver_on_started_mock.called)
 
@@ -136,7 +133,7 @@ class NetstringDatagramEndpointTestCase(asynctest.TestCase):
         self.assertTrue(receiver_on_message_mock.called)
         (args, kwargs) = receiver_on_message_mock.call_args_list[0]
         ep, received_msg = args
-        sender_id = kwargs["peer_id"]
+        _sender_id = kwargs["peer_id"]
         self.assertIsInstance(ep, NetstringDatagramEndpoint)
         self.assertEqual(received_msg, sent_msg)
 
@@ -204,7 +201,7 @@ class NetstringDatagramEndpointTestCase(asynctest.TestCase):
         self.assertTrue(receiver_on_message_mock.called)
         (args, kwargs) = receiver_on_message_mock.call_args_list[0]
         ep, received_msg = args
-        sender_id = kwargs["peer_id"]
+        _sender_id = kwargs["peer_id"]
         self.assertIsInstance(ep, NetstringDatagramEndpoint)
         self.assertEqual(received_msg, test_msg_in)
 
@@ -273,7 +270,7 @@ class NetstringDatagramEndpointTestCase(asynctest.TestCase):
         self.assertTrue(receiver_on_message_mock.called)
         (args, kwargs) = receiver_on_message_mock.call_args_list[0]
         ep, received_msg = args
-        sender_id = kwargs["peer_id"]
+        _sender_id = kwargs["peer_id"]
         self.assertIsInstance(ep, NetstringDatagramEndpoint)
         self.assertEqual(received_msg, test_msg_in)
 

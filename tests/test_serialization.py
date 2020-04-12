@@ -1,4 +1,3 @@
-import json
 import unittest
 from gestalt import serialization
 
@@ -27,25 +26,25 @@ class SerializationTestCase(unittest.TestCase):
 
         for name in codecs.keys():
             with self.subTest(f"Check fetch using '{name}'"):
-                compressor = serialization.registry.get_serializer(name)
+                _compressor = serialization.registry.get_serializer(name)
 
         for content_type, _content_encoding, _serializer in codecs.values():
             with self.subTest(f"Check fetch using '{content_type}'"):
-                compressor = serialization.registry.get_serializer(content_type)
+                _compressor = serialization.registry.get_serializer(content_type)
 
     def test_fetch_codec_by_name_or_type(self):
         codecs = serialization.registry.serializers
 
         for name in codecs.keys():
             with self.subTest(f"Check fetch using '{name}'"):
-                compressor = serialization.registry.get_codec(name)
+                _compressor = serialization.registry.get_codec(name)
 
         for content_type, _content_encoding, _serializer in codecs.values():
             with self.subTest(f"Check fetch using '{content_type}'"):
-                compressor = serialization.registry.get_codec(content_type)
+                _compressor = serialization.registry.get_codec(content_type)
 
     def test_register_invalid_serializer(self):
-        class InvalidSerializer(object):
+        class InvalidSerializer:
             pass
 
         serializer = InvalidSerializer()
@@ -84,16 +83,16 @@ class SerializationTestCase(unittest.TestCase):
         self.assertIn("Invalid serializer", str(cm.exception))
 
     def test_dumps_with_unspecified_name_or_type(self):
-        content_type, content_encoding, payload = serialization.dumps(b"")
+        content_type, content_encoding, _payload = serialization.dumps(b"")
         self.assertEqual(content_type, serialization.CONTENT_TYPE_DATA)
         self.assertEqual(content_encoding, "binary")
 
-        content_type, content_encoding, payload = serialization.dumps("")
+        content_type, content_encoding, _payload = serialization.dumps("")
         self.assertEqual(content_type, serialization.CONTENT_TYPE_TEXT)
         self.assertEqual(content_encoding, "utf-8")
 
         test_value = {"a": "a_string", "b": 42}
-        content_type, content_encoding, payload = serialization.dumps(test_value)
+        content_type, content_encoding, _payload = serialization.dumps(test_value)
         self.assertEqual(content_type, serialization.CONTENT_TYPE_JSON)
         self.assertEqual(content_encoding, "utf-8")
 

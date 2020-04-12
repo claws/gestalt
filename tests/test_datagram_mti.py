@@ -1,7 +1,6 @@
 import asyncio
 import asynctest
 import logging
-import socket
 import unittest.mock
 from gestalt import serialization
 from gestalt.datagram.mti import MtiDatagramEndpoint
@@ -34,7 +33,7 @@ class MtiDatagramEndpointTestCase(asynctest.TestCase):
         self.assertTrue(receiver_on_started_mock.called)
         self.assertTrue(receiver_on_peer_available_mock.called)
 
-        address, port = receiver_ep.bindings[0]
+        _address, _port = receiver_ep.bindings[0]
 
         # Check that starting a receiver that is already started does not
         # have any consequences
@@ -69,12 +68,10 @@ class MtiDatagramEndpointTestCase(asynctest.TestCase):
                 on_peer_unavailable=receiver_on_peer_unavailable_mock,
             )
 
-            with self.assertLogs(
-                "gestalt.datagram.endpoint", level=logging.ERROR
-            ) as log:
+            with self.assertLogs("gestalt.datagram.endpoint", level=logging.ERROR):
                 with self.assertRaises(Exception):
                     await receiver_ep.start(local_addr=(host, occupied_port))
-                    address, port = receiver_ep.bindings[0]
+                    _address, _port = receiver_ep.bindings[0]
 
             self.assertFalse(receiver_on_started_mock.called)
 
@@ -139,7 +136,7 @@ class MtiDatagramEndpointTestCase(asynctest.TestCase):
         self.assertIsInstance(ep, MtiDatagramEndpoint)
         self.assertEqual(received_msg, sent_msg)
         self.assertIn("addr", kwargs)
-        received_sender_id = kwargs["addr"]
+        _received_sender_id = kwargs["addr"]
         self.assertIn("type_identifier", kwargs)
         received_msg_id = kwargs["type_identifier"]
         self.assertEqual(received_msg_id, 0)
@@ -207,7 +204,7 @@ class MtiDatagramEndpointTestCase(asynctest.TestCase):
         self.assertTrue(receiver_on_message_mock.called)
         (args, kwargs) = receiver_on_message_mock.call_args_list[0]
         ep, received_msg = args
-        received_sender_id = kwargs["addr"]
+        _received_sender_id = kwargs["addr"]
         received_msg_id = kwargs["type_identifier"]
 
         self.assertIsInstance(ep, MtiDatagramEndpoint)
@@ -224,7 +221,7 @@ class MtiDatagramEndpointTestCase(asynctest.TestCase):
         self.assertTrue(receiver_on_message_mock.called)
         (args, kwargs) = receiver_on_message_mock.call_args_list[0]
         ep, received_msg = args
-        received_sender_id = kwargs["addr"]
+        _received_sender_id = kwargs["addr"]
         received_msg_id = kwargs["type_identifier"]
 
         self.assertIsInstance(ep, MtiDatagramEndpoint)
@@ -296,7 +293,7 @@ class MtiDatagramEndpointTestCase(asynctest.TestCase):
         self.assertTrue(receiver_on_message_mock.called)
         (args, kwargs) = receiver_on_message_mock.call_args_list[0]
         ep, received_msg = args
-        received_sender_id = kwargs["addr"]
+        _received_sender_id = kwargs["addr"]
         received_msg_id = kwargs["type_identifier"]
 
         self.assertIsInstance(ep, MtiDatagramEndpoint)
@@ -313,7 +310,7 @@ class MtiDatagramEndpointTestCase(asynctest.TestCase):
         self.assertTrue(receiver_on_message_mock.called)
         (args, kwargs) = receiver_on_message_mock.call_args_list[0]
         ep, received_msg = args
-        received_sender_id = kwargs["addr"]
+        _received_sender_id = kwargs["addr"]
         received_msg_id = kwargs["type_identifier"]
 
         self.assertIsInstance(ep, MtiDatagramEndpoint)
@@ -393,7 +390,7 @@ class MtiDatagramEndpointTestCase(asynctest.TestCase):
         self.assertTrue(receiver_on_message_mock.called)
         (args, kwargs) = receiver_on_message_mock.call_args_list[0]
         ep, received_msg = args
-        received_sender_id = kwargs["addr"]
+        _received_sender_id = kwargs["addr"]
         received_msg_id = kwargs["type_identifier"]
 
         self.assertIsInstance(ep, MtiDatagramEndpoint)
