@@ -26,7 +26,7 @@ class CompressionTestCase(unittest.TestCase):
 
         for name in codecs.keys():
             with self.subTest(f"Check fetch using '{name}'"):
-                compressor = compression.registry.get_compressor(name)
+                _compressor = compression.registry.get_compressor(name)
 
         for content_type, _compressor in codecs.values():
             with self.subTest(f"Check fetch using '{content_type}'"):
@@ -37,11 +37,11 @@ class CompressionTestCase(unittest.TestCase):
 
         for name in codecs.keys():
             with self.subTest(f"Check fetch using '{name}'"):
-                compressor = compression.registry.get_codec(name)
+                _compressor = compression.registry.get_codec(name)
 
         for content_type, _compressor in codecs.values():
             with self.subTest(f"Check fetch using '{content_type}'"):
-                compressor = compression.registry.get_codec(content_type)
+                _compressor = compression.registry.get_codec(content_type)
 
     def test_register_invalid_compressor(self):
         class InvalidCompressor(object):
@@ -75,12 +75,12 @@ class CompressionTestCase(unittest.TestCase):
         self.assertIn("Invalid compressor", str(cm.exception))
 
     def test_compress_with_unspecified_name_or_type(self):
-        content_type, payload = compression.compress(b"")
+        content_type, _payload = compression.compress(b"")
         self.assertEqual(content_type, None)
 
     def test_compression_roundtrip(self):
         codecs = compression.registry.compressors
-        for name, settings in codecs.items():
+        for name, _settings in codecs.items():
             with self.subTest(f"Check {name} compression roundtrip"):
                 convenience_name = name
                 mime_type = compression.registry.name_to_type[name]

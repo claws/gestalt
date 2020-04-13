@@ -2,6 +2,9 @@ The example in this directory uses the AMQP producer and consumer objects
 to demonstrate how they can be used to transfer messages in a variety of
 different formats.
 
+NOTE: This example makes use of Protocol Buffers stub code which is generated
+when the ``make generate`` rule is run from the top level project directory.
+
 The examples may be started in any order. Command line help may be obtained
 by passing the ``-h`` option to the script.
 

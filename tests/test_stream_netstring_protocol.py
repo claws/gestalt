@@ -41,7 +41,7 @@ class NetstringStreamProtocolTestCase(unittest.TestCase):
         on_message_mock = unittest.mock.Mock()
         close_mock = unittest.mock.Mock()
 
-        p = NetstringStreamProtocol(on_message=on_message_mock,)
+        p = NetstringStreamProtocol(on_message=on_message_mock)
         p.close = close_mock
 
         netstring_msg = create_netstring_message(b"")
@@ -61,7 +61,7 @@ class NetstringStreamProtocolTestCase(unittest.TestCase):
     def test_message_received_in_worst_case_delivery_scenario(self):
         on_message_mock = unittest.mock.Mock()
 
-        p = NetstringStreamProtocol(on_message=on_message_mock,)
+        p = NetstringStreamProtocol(on_message=on_message_mock)
 
         netstring_msg = create_netstring_message(b"Hello World")
 

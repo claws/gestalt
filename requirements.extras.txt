@@ -1,0 +1,7 @@
+aio_pika
+avro-python3
+brotli
+msgpack-python
+protobuf
+python-snappy
+PyYAML

@@ -3,7 +3,6 @@ import asynctest
 import logging
 import socket
 import unittest.mock
-import typing
 from gestalt import serialization
 from gestalt.stream.mti import MtiStreamClient, MtiStreamServer
 
@@ -20,12 +19,12 @@ class MtiStreamEndpointTestCase(asynctest.TestCase):
 
         await server_ep.start()
         self.assertTrue(server_on_started_mock.called)
-        (args, kwargs) = server_on_started_mock.call_args
+        (args, _kwargs) = server_on_started_mock.call_args
         self.assertIs(args[0], server_ep)
         server_on_started_mock.reset_mock()
 
         self.assertTrue(server_ep.running)
-        address, port = server_ep.bindings[0]
+        _address, _port = server_ep.bindings[0]
 
         # Check that starting a server that is already started does not
         # have any consequences
@@ -34,7 +33,7 @@ class MtiStreamEndpointTestCase(asynctest.TestCase):
 
         await server_ep.stop()
         self.assertTrue(server_on_stopped_mock.called)
-        (args, kwargs) = server_on_stopped_mock.call_args
+        (args, _kwargs) = server_on_stopped_mock.call_args
         self.assertIs(args[0], server_ep)
         server_on_stopped_mock.reset_mock()
 
@@ -59,7 +58,7 @@ class MtiStreamEndpointTestCase(asynctest.TestCase):
                 on_started=server_on_started_mock, on_stopped=server_on_stopped_mock
             )
 
-            with self.assertLogs("gestalt.stream.endpoint", level=logging.ERROR) as log:
+            with self.assertLogs("gestalt.stream.endpoint", level=logging.ERROR):
                 with self.assertRaises(Exception):
                     await server_ep.start(addr=host, port=occupied_port)
 
@@ -287,7 +286,7 @@ class MtiStreamEndpointTestCase(asynctest.TestCase):
 
         self.assertTrue(server_on_message_mock.called)
         (args, kwargs) = server_on_message_mock.call_args_list[0]
-        svr, received_msg = args
+        _svr, received_msg = args
         sender_id = kwargs["peer_id"]
         self.assertEqual(received_msg, test_msg_in)
 
@@ -295,7 +294,7 @@ class MtiStreamEndpointTestCase(asynctest.TestCase):
         server_ep.send(received_msg, peer_id=sender_id)
         await asyncio.sleep(0.1)
         (args, kwargs) = client_on_message_mock.call_args_list[0]
-        cli, received_msg = args
+        _cli, received_msg = args
         sender_id = kwargs["peer_id"]
         self.assertEqual(received_msg, test_msg_in)
 
@@ -365,7 +364,7 @@ class MtiStreamEndpointTestCase(asynctest.TestCase):
 
         self.assertTrue(server_on_message_mock.called)
         (args, kwargs) = server_on_message_mock.call_args_list[0]
-        svr, received_msg = args
+        _svr, received_msg = args
         sender_id = kwargs["peer_id"]
         self.assertEqual(received_msg, test_msg_in)
 
@@ -373,7 +372,7 @@ class MtiStreamEndpointTestCase(asynctest.TestCase):
         server_ep.send(received_msg, peer_id=sender_id)
         await asyncio.sleep(0.1)
         (args, kwargs) = client_on_message_mock.call_args_list[0]
-        cli, received_msg = args
+        _cli, received_msg = args
         sender_id = kwargs["peer_id"]
         self.assertEqual(received_msg, test_msg_in)
 
@@ -458,7 +457,7 @@ class MtiStreamEndpointTestCase(asynctest.TestCase):
 
         self.assertTrue(server_on_message_mock.called)
         (args, kwargs) = server_on_message_mock.call_args_list[0]
-        svr, received_msg = args
+        _svr, received_msg = args
         received_msg_id = kwargs["type_identifier"]
         sender_id = kwargs["peer_id"]
         self.assertEqual(received_msg, test_msg_in)
@@ -468,7 +467,7 @@ class MtiStreamEndpointTestCase(asynctest.TestCase):
         server_ep.send(received_msg, type_identifier=received_msg_id, peer_id=sender_id)
         await asyncio.sleep(0.1)
         (args, kwargs) = client_on_message_mock.call_args_list[0]
-        cli, received_msg = args
+        _cli, received_msg = args
         received_msg_id = kwargs["type_identifier"]
         sender_id = kwargs["peer_id"]
         self.assertEqual(received_msg, test_msg_in)

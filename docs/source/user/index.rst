@@ -40,7 +40,7 @@ The `API Reference <http://gestalt.readthedocs.io>`_ provides API-level document
 
 A record of significant changes can be found in the change log.
 
-.. mdinclude:: ../../../CHANGELOG.md
+.. include:: ../../../CHANGELOG.rst
 
 .. _report-bugs-label:
 

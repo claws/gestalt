@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/claws/gestalt.svg?branch=master)](https://travis-ci.org/claws/gestalt) [![pypi](https://img.shields.io/pypi/v/gestalt.svg)](https://pypi.python.org/pypi/gestalt) [![Documentation Status](https://readthedocs.org/projects/gestalt/badge/?version=latest)](https://gestalt.readthedocs.io/en/latest) ![License](https://img.shields.io/github/license/claws/gestalt) ![pyversions](https://img.shields.io/pypi/pyversions/gestalt) ![Style](https://img.shields.io/badge/code%20style-black-000000.svg)
+![Build Status](https://github.com/claws/gestalt/workflows/Build/badge.svg?branch=master) [![pypi](https://img.shields.io/pypi/v/gestalt.svg)](https://pypi.python.org/pypi/gestalt) [![Documentation Status](https://readthedocs.org/projects/gestalt/badge/?version=latest)](https://gestalt.readthedocs.io/en/latest) ![License](https://img.shields.io/github/license/claws/gestalt) ![pyversions](https://img.shields.io/pypi/pyversions/gestalt) ![Style](https://img.shields.io/badge/code%20style-black-000000.svg)
 
 # Gestalt
 
@@ -76,18 +76,16 @@ $ pip install gestalt[amq,protobuf,msgpack,avro,brotli,snappy,yaml]
 
 where the available extras are:
 
+- ``amq`` will install the AMQP extras (asyncio bindings for RabbitMQ)
 - ``protobuf`` will install support for serializing Google Protocol Buffers structures.
 - ``msgpack`` will install support for serializing Msgpack structures.
 - ``yaml`` will install support for serializing YAML structures.
 - ``avro`` will install support for serializing Apache Avro structures.
+- ``brotli`` will install Brotli compression support.
 - ``snappy`` will install Snappy compression support. The Python snappy package
   is simply a binding to a system library. Therefore you must install that first
   before the Python binding will install successfully. For example, on Debian
   systems you will want ``sudo apt-get install libsnappy-dev``
-
-- ``brotli`` will install Brotli compression support.
-- ``amq`` will install the AMQP extras (asyncio bindings for RabbitMQ)
-- ``develop`` will install the extras needed to development Gestalt.
 
 Once installed you can begin using Gestalt to develop applications.
 
@@ -95,7 +93,8 @@ Once installed you can begin using Gestalt to develop applications.
 
 There are many examples under the ``examples`` directory.
 
-The [API Reference](http://gestalt.readthedocs.io) provides API-level documentation.
+The [docs](http://gestalt.readthedocs.io) provides user and developer guides as
+well as API-level documentation.
 
 
 ### Performance Tip

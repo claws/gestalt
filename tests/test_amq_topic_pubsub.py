@@ -1,17 +1,15 @@
 import asyncio
 import asynctest
-import logging
 import unittest.mock
 from gestalt import serialization
 from gestalt.amq.consumer import Consumer
 from gestalt.amq.producer import Producer
-from gestalt.compression import COMPRESSION_GZIP, COMPRESSION_BZ2
+from gestalt.compression import COMPRESSION_GZIP
 from gestalt.serialization import (
     CONTENT_TYPE_AVRO,
     CONTENT_TYPE_JSON,
     CONTENT_TYPE_PROTOBUF,
     CONTENT_TYPE_TEXT,
-    registry,
 )
 
 try:
@@ -32,13 +30,13 @@ def setUpModule():
     """ Check RabbitMQ service is available """
 
     async def is_rabbitmq_available():
-        global RABBITMQ_AVAILABLE
+        global RABBITMQ_AVAILABLE  # pylint: disable=global-statement
         try:
             conn = aio_pika.Connection(AMQP_URL)
             await conn.connect(timeout=0.1)
             await conn.close()
             RABBITMQ_AVAILABLE = True
-        except Exception as exc:
+        except Exception:
             pass
 
     loop = asyncio.new_event_loop()
@@ -71,8 +69,6 @@ class RabbitmqTopicPubSubTestCase(asynctest.TestCase):
 
     async def test_topic_pubsub_no_consumer_handler(self):
         """ check consumer drops messages when no handler supplied """
-        exchange_name = "test"
-
         p = Producer(
             amqp_url=AMQP_URL,
             routing_key="position.update",
@@ -123,7 +119,7 @@ class RabbitmqTopicPubSubTestCase(asynctest.TestCase):
             await asyncio.sleep(0.1)
 
             self.assertTrue(on_message_mock.called)
-            args, kwargs = on_message_mock.call_args_list[0]
+            args, _kwargs = on_message_mock.call_args_list[0]
             payload, message = args
             self.assertEqual(payload, text_msg)
             self.assertEqual(message.properties.content_type, CONTENT_TYPE_TEXT)
@@ -164,7 +160,7 @@ class RabbitmqTopicPubSubTestCase(asynctest.TestCase):
             await asyncio.sleep(0.1)
 
             self.assertTrue(on_message_mock.called)
-            args, kwargs = on_message_mock.call_args_list[0]
+            args, _kwargs = on_message_mock.call_args_list[0]
             payload, message = args
             self.assertEqual(payload, POSITION_DICT)
             self.assertEqual(message.properties.content_type, CONTENT_TYPE_JSON)
@@ -197,7 +193,7 @@ class RabbitmqTopicPubSubTestCase(asynctest.TestCase):
 
         # Register messages that require using the x-type-id message attribute
         serializer = serialization.registry.get_serializer(CONTENT_TYPE_PROTOBUF)
-        type_identifier = serializer.registry.register_message(Position)
+        _type_identifier = serializer.registry.register_message(Position)
 
         try:
             await p.start()
@@ -211,7 +207,7 @@ class RabbitmqTopicPubSubTestCase(asynctest.TestCase):
             await asyncio.sleep(0.1)
 
             self.assertTrue(on_message_mock.called)
-            args, kwargs = on_message_mock.call_args_list[0]
+            args, _kwargs = on_message_mock.call_args_list[0]
             payload, message = args
             self.assertEqual(payload, protobuf_msg)
             self.assertEqual(message.properties.content_type, CONTENT_TYPE_PROTOBUF)
@@ -275,7 +271,7 @@ class RabbitmqTopicPubSubTestCase(asynctest.TestCase):
             await asyncio.sleep(0.1)
 
             self.assertTrue(on_message_mock.called)
-            args, kwargs = on_message_mock.call_args_list[0]
+            args, _kwargs = on_message_mock.call_args_list[0]
             payload, message = args
             self.assertEqual(payload, avro_msg)
             self.assertEqual(message.properties.content_type, CONTENT_TYPE_AVRO)

@@ -2,7 +2,6 @@ asynctest
 black
 coverage
 mypy
-m2r
 pylint
 sphinx
 twine

@@ -1,7 +1,6 @@
 import asyncio
 import asynctest
 import logging
-import pathlib
 import socket
 import ssl
 import sys
@@ -47,7 +46,7 @@ class NetstringStreamEndpointTestCase(asynctest.TestCase):
 
         await server_ep.stop()
         self.assertTrue(server_on_stopped_mock.called)
-        (args, kwargs) = server_on_stopped_mock.call_args
+        (args, _kwargs) = server_on_stopped_mock.call_args
         self.assertIs(args[0], server_ep)
         server_on_stopped_mock.reset_mock()
 
@@ -314,6 +313,9 @@ class NetstringStreamEndpointTestCase(asynctest.TestCase):
             self.assertTrue(server_on_stopped_mock.called)
 
     @unittest.skipUnless(tls_utils.CERTS_EXIST, "cert files do not exist")
+    @unittest.skipIf(
+        PY36 and py_ver.micro >= 9, "No longer works on Python 3.6.x where x >= 9"
+    )
     async def test_client_server_ssl_without_client_certificates(self):
         """ check server correct fails to verify client not supplying a certificate """
         certificates = tls_utils.get_certs()
@@ -390,6 +392,9 @@ class NetstringStreamEndpointTestCase(asynctest.TestCase):
             self.assertTrue(server_on_stopped_mock.called)
 
     @unittest.skipUnless(tls_utils.CERTS_EXIST, "cert files do not exist")
+    @unittest.skipIf(
+        PY36 and py_ver.micro >= 9, "No longer works on Python 3.6.x where x >= 9"
+    )
     async def test_client_server_ssl_with_selfsigned_client_certificates(self):
         """ check server correctly fails to verify client supplying a self signed certificate """
         certificates = tls_utils.get_certs()

@@ -9,7 +9,3 @@ class VersionTestCase(unittest.TestCase):
         """ check gestalt exposes a version attribute """
         self.assertTrue(hasattr(gestalt, "__version__"))
         self.assertIsInstance(gestalt.__version__, str)
-
-
-if __name__ == "__main__":
-    unittest.main()

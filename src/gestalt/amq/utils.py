@@ -47,6 +47,7 @@ def build_amqp_url(
 
     :param ssl_options: A dict of public ssl context-related values for the
       SSL connection. Available keys are:
+
         - ca_certs as a string containing path to ca certificate file
         - cert_reqs
         - certfile

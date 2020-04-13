@@ -128,7 +128,6 @@ class DatagramEndpoint:
         local_addr: Tuple[str, int] = None,
         remote_addr: Tuple[str, int] = None,
         family: int = socket.AF_INET,
-        reuse_address: bool = False,
         reuse_port: bool = False,
         allow_broadcast: bool = False,
     ) -> None:
@@ -142,10 +141,6 @@ class DatagramEndpoint:
 
         :param family: An optional address family integer from the socket module.
           Defaults to socket.AF_INET IPv4.
-
-        :param reuse_address: tells the kernel to reuse a local socket in
-          TIME_WAIT state, without waiting for its natural timeout to expire.
-          If not specified will automatically be set to True on Unix.
 
         :param reuse_port: tells the kernel to allow this endpoint to be bound
           to the same port as other existing endpoints are bound to, so long
@@ -175,7 +170,6 @@ class DatagramEndpoint:
                 local_addr=local_addr,
                 remote_addr=remote_addr,
                 family=family,
-                reuse_address=reuse_address,
                 reuse_port=reuse_port,
                 allow_broadcast=allow_broadcast,
             )
@@ -263,7 +257,6 @@ class DatagramEndpoint:
         local_addr: Tuple[str, int] = None,
         remote_addr: Tuple[str, int] = None,
         family: int = socket.AF_INET,
-        reuse_address: bool = False,
         reuse_port: bool = False,
         allow_broadcast: bool = False,
     ) -> None:
@@ -278,10 +271,6 @@ class DatagramEndpoint:
 
         :param family: An optional address family integer from the socket module.
           Defaults to socket.AF_INET IPv4.
-
-        :param reuse_address: tells the kernel to reuse a local socket in
-          TIME_WAIT state, without waiting for its natural timeout to expire.
-          If not specified will automatically be set to True on Unix.
 
         :param reuse_port: tells the kernel to allow this endpoint to be bound
           to the same port as other existing endpoints are bound to, so long
